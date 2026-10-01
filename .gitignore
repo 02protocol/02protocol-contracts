@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Build output
+artifacts/
+cache/
+
+# Environment files — never commit a key
+.env
+.env.*
+!.env.example
