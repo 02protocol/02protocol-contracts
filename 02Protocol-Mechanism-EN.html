@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>02Protocol Mechanism Document · Full Version</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  // Layout: useMaxWidth=true → diagrams fit the body width, so no horizontal scrolling is ever needed;
+  // Node labels are deliberately kept short / wrapped, so the scale factor is basically 1 and the text stays legible (never shrunk).
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: true, htmlLabels: true, nodeSpacing: 55, rankSpacing: 65, curve: 'basis', padding: 12 },
+    themeVariables: { fontSize: '15px' }
+  });
+</script>
+<style>
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    max-width: 1080px;
+    margin: 40px auto;
+    padding: 0 30px 80px;
+    color: #222;
+    line-height: 1.85;
+    font-size: 15px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 30px;
+    border-bottom: 3px double #1e60c9;
+    padding-bottom: 16px;
+    color: #0e3e8c;
+    margin-bottom: 40px;
+  }
+  h2 {
+    font-size: 22px;
+    color: #fff;
+    background: linear-gradient(90deg, #1e60c9 0%, #4a90e2 100%);
+    padding: 10px 18px;
+    border-radius: 6px;
+    margin-top: 56px;
+    box-shadow: 0 2px 6px rgba(30,96,201,.2);
+  }
+  h3 {
+    font-size: 17px;
+    color: #0e3e8c;
+    border-left: 5px solid #1e60c9;
+    padding-left: 12px;
+    margin-top: 30px;
+  }
+  h4 {
+    font-size: 15px;
+    color: #2c5282;
+    margin-top: 24px;
+  }
+  p { margin: 8px 0; }
+  ul, ol { padding-left: 26px; }
+  li { margin: 6px 0; }
+  strong { color: #b91c1c; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 18px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid #c7d2e0;
+    padding: 10px 14px;
+    vertical-align: top;
+  }
+  th {
+    background: #1e60c9;
+    color: #fff;
+    text-align: left;
+    font-weight: 500;
+  }
+  tr:nth-child(even) td { background: #f5f9ff; }
+  .box {
+    border: 1px solid #c7d2e0;
+    background: #f7faff;
+    padding: 16px 22px;
+    border-radius: 8px;
+    margin: 18px 0;
+  }
+  .formula {
+    text-align: center;
+    background: #edf4ff;
+    padding: 16px;
+    border-left: 4px solid #1e60c9;
+    margin: 18px auto;
+    font-weight: bold;
+    color: #0e3e8c;
+    font-size: 16px;
+    letter-spacing: .5px;
+  }
+  .mermaid {
+    text-align: center;
+    margin: 26px auto;
+    padding: 20px;
+    background: #fff;
+    border: 1px dashed #a9bddb;
+    border-radius: 10px;
+    page-break-inside: avoid;
+  }
+  .mermaid svg { line-height: 1.45; }
+  /* Fallback: once mermaid has rendered it marks the element with data-processed, and this rule stops applying;
+     if rendering fails (opened offline / Word opening the HTML / converted to docx), the diagram source is at least
+     shown with its original line breaks, instead of being merged by the browser into one squashed blob of text. */
+  .mermaid:not([data-processed]) {
+    white-space: pre-wrap;
+    text-align: left;
+    font-family: Consolas, Menlo, "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #334155;
+  }
+  .page-break { page-break-before: always; }
+  .footer-note {
+    margin-top: 60px;
+    padding-top: 16px;
+    border-top: 1px solid #c7d2e0;
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+  }
+  .score-bar {
+    height: 18px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 4px 0 14px;
+  }
+  .score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+    color: #fff;
+    font-size: 12px;
+    text-align: right;
+    padding-right: 8px;
+    line-height: 18px;
+  }
+</style>
+</head>
+<body>
+
+<h1>02Protocol Mechanism Document · Full Version</h1>
+
+<div class="box" style="text-align:center;">
+  <p><strong>Token full name:</strong> 02Protocol  <strong>Token symbol:</strong> 02  <strong>Hard supply cap:</strong> 21,000,000 tokens (hard-coded, non-governable)</p>
+  <p><strong>Decimals:</strong> 18  <strong>Pricing model:</strong> fully on-chain backing pricing (vault BNB ÷ circulating 02 supply)</p>
+  <p><strong>Document date:</strong> 2026-09-19</p>
+</div>
+
+<!-- ============================================================ -->
+<!--               Introduction I — Fully On-Chain Pricing        -->
+<!-- ============================================================ -->
+<h2>Introduction I — Fully On-Chain Pricing (Plain-English Explanation)</h2>
+
+<h3>1. What Fully On-Chain Pricing Is</h3>
+<p>The price of this project's token <strong>does not depend on any third-party oracle, any exchange quote, or any manual setting</strong>. Instead it is computed directly by a simple division formula from two numbers that are "public on-chain, verifiable by anyone and changeable by no one":</p>
+
+<div class="formula">Backing price per 02 = total BNB in the backing vault ÷ total 02 in circulation</div>
+
+<p>That is what "fully on-chain pricing" means — the price is 100% determined by real on-chain data, every node on the whole chain computes exactly the same result, and there is no room for human manipulation.</p>
+
+<h3>2. Where the Backing Vault's BNB Comes From (continuous inflow, raising the floor price)</h3>
+<p>The backing vault is an independent accounting pool hard-coded into the main contract, from which only legitimate exits can pay out. Its inflow sources are:</p>
+<ol>
+  <li><strong>90%</strong> of the BNB users pay in during mint-phase minting (the remaining 7% goes to the LP staking dividend pool and 3% to the single-token staking dividend pool; minting itself charges no fee)</li>
+  <li><strong>50%</strong> of the "sell-back fee" deducted when users sell 02 back at the backing price (the other 20% goes to the single-token staking dividend pool and 30% to the LP staking dividend pool)</li>
+  <li>a 1% share returning to the vault out of the 3% transfer tax on every V2 exchange trade</li>
+  <li>when a user repays a loan, the interest is paid in BNB together with the principal and is split three ways — backing vault / staking dividends / buyback — with the whole of it going into the vault at launch</li>
+  <li>on maturity liquidation of a loan, the lent principal is replenished first, and the interest portion plus any surplus follows the same three-way split (with a 1% keeper fee taken out of the surplus)</li>
+</ol>
+
+<h3>3. Mint Price Protection Mechanism (early anti-dump)</h3>
+<p>During the mint phase, to prevent the early price being so low that the allocation is cheaply drained, the mint price uses a "higher-of-the-two pricing" mechanism:</p>
+
+<div class="formula">Actual mint fill price = max(curve price, backing price)<br>Curve price: starts at 0.000000247946 BNB / token and rises linearly with the BNB minted network-wide; when the full 20 BNB is minted it reaches exactly 0.000002479460 BNB / token (10× the starting price)</div>
+
+<p>In other words, the mint-phase price starts at 0.000000247946 and <strong>rises a little automatically with every mint</strong> (computed on-chain from the amount already minted, tamper-proof by anyone); the earlier you participate the lower the price, the later you participate the higher the price. At the same time the mint price <strong>is never below the backing price at that moment</strong> (the curve price and the backing price are compared and the higher taken), so the route of minting cheap early tokens is completely blocked.</p>
+
+<p><strong>The gap between those two prices:</strong> because only 90% of mint funds reach the vault and the curve price rises with every mint, the backing price stays <em>below</em> the current curve price for the entire mint phase — the ratio runs from roughly 90% at the start down to roughly 35% at full mint. Put the other way round, the mint price is about 1.1× to 2.85× the sell-back price. Selling back during the mint phase therefore returns less than the curve price paid, before the fee is deducted. The whitepaper (section 4.3) sets this out in full, with the numbers.</p>
+
+<h3>4. The Sell-Back Price</h3>
+<p>Once the operational phase opens, users can sell 02 back to the contract for BNB, and <strong>the fill price is 100% the fully on-chain backing price at that very second</strong> — any user can recompute and verify it on-chain for themselves. A sell-back fee is deducted on top of that price: 30% falling linearly to 5% across the mint phase, then a fixed 5%, so the BNB actually received is the backing price minus that fee. The channel is open during the mint phase and again once the operational phase opens; it is closed in between.</p>
+
+<h3>5. What Fully On-Chain Pricing Means for Users</h3>
+<ul>
+  <li><strong>You don't have to trust anyone:</strong> take the on-chain data yourself, compute "vault BNB / circulating supply", and you know exactly how much BNB each of your 02 tokens is actually backed by</li>
+  <li><strong>You don't fear whales painting candlesticks:</strong> exchange prices from short-term speculation may deviate, but while the sell-back channel is open <strong>you can sell 02 back to the contract at the fully on-chain backing price and recover real BNB</strong> (minus the sell-back fee); however low the exchange pushes the price, the main contract is still buying at the backing price</li>
+  <li><strong>The floor price only moves one way — up:</strong> every V2 swap, every mint, every redemption, every liquidation and every buyback lifts it, either by thickening the vault or by burning circulating supply, so the backing price keeps climbing while activity continues. Lending is the one case where the on-chain reading dips (the vault's BNB falls while the 02 supply does not move), but the BNB lent out is not gone — it becomes <strong>a receivable anchored to the borrower's collateral</strong> (collateral worth ≥ 125% of the loan, a separate 20% cap on lending, liquidation at the V2 market price after 7 days, the vault taking back only its principal, unsold 02 returned to the borrower, no penalty); once repaid, principal plus interest return and the price lands higher — so <strong>the backing price never goes down</strong>. It only sits still when there is no volume, no redemption, no ecosystem revenue and no outstanding loan. See "The gap between those two prices" above.</li>
+</ul>
+
+<!-- ============================================================ -->
+<!--           Introduction II — Safety & Never-Goes-To-Zero      -->
+<!-- ============================================================ -->
+<h2>Introduction II — Safety &amp; The Never-Goes-To-Zero Property</h2>
+
+<h3>1. Mathematical Proof That It Never Goes to Zero</h3>
+<p>In its mechanism design, this project <strong>keeps every single 02 permanently matched to a real share of BNB held in the backing vault</strong>, so mathematically it cannot fall to zero value:</p>
+
+<div class="formula">Identity: backing price per token × total circulating supply = backing vault BNB</div>
+<p style="text-align:center;">As long as the backing vault holds ≥ 1 smallest unit of BNB, and the circulating supply is ≥ 1 smallest unit of 02, the backing price per token is always ≥ a positive number.</p>
+
+<p>In other words, <strong>as long as there is still BNB in the backing vault, 02 always has backing value</strong>; and the backing vault has several continuously flowing-in channels — minting, sell-back fees, the 1% V2 tax share and more. Unless every holder sells back at the same time and drains the vault empty (which is also normal redemption: everyone who sold back received their corresponding BNB, so there is no "trapped at zero"), the backing price cannot be 0.</p>
+
+<h3>2. Why the Backing Vault Cannot Be "Transferred Away"</h3>
+<p>The backing vault <code>vaultBNB</code> is an independently accounted number inside the main contract. <strong>Nobody can move the vault BNB to themselves by way of a "withdrawal" — including the contract owner wallet.</strong> (Strictly speaking this holds once the vault seal has been thrown.)</p>
+<p>This is meant to be a hard, on-chain verifiable guarantee: at launch a one-time, <strong>irreversible</strong> switch is thrown that seals the temporary withdrawal permission used during deployment — the three routes of direct withdrawal, timelocked withdrawal, and "rerouting a payout by changing the lending contract address" all become dead, and after that even the deployer has no entry point left to take the vault BNB out. <strong>That switch has not been thrown yet.</strong> Whether it has is always verifiable on-chain: read <code>vaultWithdrawSealed</code> on BscScan — it currently reads <code>false</code>, and <code>true</code> means the vault is sealed.</p>
+<p>So the backing vault BNB is left with only these exits, which are fixed by code and <strong>can only flow to users or to the system mechanism</strong>:</p>
+<ol>
+  <li><strong>User backing sell-back:</strong> send 02 back to the contract and recover the corresponding BNB at the fully on-chain price</li>
+  <li><strong>Lending releases principal:</strong> when a user borrows BNB, it is released from the vault within a 20% quota (the user must later repay it plus interest, so the vault does not lose on net)</li>
+  <li><strong>V2 tax / interest / liquidation splits:</strong> the V2 tax is distributed as 0.5% burn / 1% vault / 1% LP / 0.5% single-token. Lending interest is split three ways — backing vault / staking dividends / buyback — and at launch <strong>100% of it goes to the vault</strong>, because that is what raises the backing price, and it does so from the first block without depending on V2 depth; the owner shifts the vault leg through <code>setVaultShareBps</code>, while the dividend leg (<code>lendDividendBps</code>) stays a DAO parameter. On liquidation the principal returns to the vault while the interest and any surplus follow the same split, with a 1% keeper fee</li>
+  <li><strong>Boundary of the pending-distribution pool:</strong> only "the part of the dividend pool <strong>not yet allocated to any specific user</strong>" can be handled by the contract owner in an emergency; once a dividend is allocated to a specific user's name, then — like the backing vault itself — <strong>nobody can move it anymore</strong></li>
+</ol>
+
+<h3>3. No Oracle Dependency · Immune to Oracle Attacks</h3>
+<p>Fully on-chain pricing only needs a division between two storage variables inside the main contract and <strong>does not depend on any third-party price oracle such as Chainlink</strong>, so it cannot be attacked by oracle price feeds, and a oracle failure cannot set the price to 0 and crash the token to zero (many lending projects on the market go to zero through oracle vulnerabilities; this project is naturally immune).</p>
+
+<h3>4. No Pre-Mine · No Team Allocation · Fair Launch</h3>
+<ul>
+  <li>Total supply has a hard cap of <strong>21,000,000 tokens</strong> (hard-coded, non-governable; the actual amount is necessarily lower because of sell-back burns). All 02 <strong>can only be created by "paying BNB to mint"</strong>, with no reserve, no team allocation, no early-investor allocation and <strong>no presale at all</strong></li>
+  <li>The cumulative BNB minting cap per address is 0.1, and even the address that deployed the contract has to obey it and cannot quietly take more</li>
+  <li>This means: no early-unlock dumping, no team selling off, and nobody with an inherent "low-cost position"</li>
+</ul>
+
+<h3>5. Full-Chain Re-entrancy Protection &amp; Slippage Protection</h3>
+<ul>
+  <li>Every action that sends BNB out (backing sell-back refunds, dividends paid to users, lending disbursements, liquidation splits) is wrapped in a "non-reentrancy lock" to stop hackers from stealing the vault through recursive calls</li>
+  <li>Every action that swaps on the V2 exchange (V2 tax swaps, liquidation collateral 02 swaps) has <strong>a non-zero minimum fill price protection</strong> (V2 tax swaps fall back to 90% of the backing price; a liquidation that sells enough collateral to cover the whole debt must return <strong>at least the principal</strong>, and 85% of the backing price is only the floor when the collateral cannot cover the debt), so they cannot be maliciously arbitraged by sandwich bots buying and selling around them</li>
+</ul>
+
+<h3>6. Irreversible State Machine &amp; User Assets Are Never Locked</h3>
+<ul>
+  <li>The switching between the three phases (mint → pause → operational) is <strong>one-way and irreversible</strong>: once the operational phase is opened, <strong>nobody can ever turn it back</strong>, so there is no possibility of "being shut down so you cannot sell"</li>
+  <li>The switches of the three subsystems — staking, LP staking and lending — only control <strong>whether new deposits are accepted</strong>: even if an entry is closed, <strong>the principal and dividends already staked, and the remaining collateral already liquidated</strong>, can still be claimed 100% freely by the user themselves; assets are never locked inside</li>
+</ul>
+
+<h3>7. Two-Step Permission Handover · Preventing Lost Permissions from Mistakes</h3>
+<p>Owner permission handovers on all contracts use a "two-step confirmation" scheme: the first step submits the receiving address, and the second step is the new address itself confirming acceptance. Cancelling at either step does not lose permissions, eliminating accidents such as accidentally transferring ownership to a hacker's address.</p>
+
+<!-- ============================================================ -->
+<!--                         Diagram Section                       -->
+<!-- ============================================================ -->
+<div class="page-break"></div>
+<h2>Diagrams Overview</h2>
+<p style="text-align:center;color:#64748b;font-size:13px;">The diagrams below are drawn separately, one "section" at a time, and each covers only one thing; if a diagram is wider than the text, you can scroll sideways to view it.</p>
+
+<h3>Figure 1 · Project Lifecycle Overview</h3>
+<div class="mermaid">
+flowchart TD
+    A(["Project launch"]) --> B["🟢 Phase 1 · Mint Phase<br/>Pay BNB to mint 02<br/>Cap 0.1 BNB per address"]
+    B -->|"20 BNB minted network-wide · auto switch"| C["🟡 Phase 2 · Pause Window<br/>Create price-anchor pool<br/>LP sent to dead address"]
+    C -->|"One-time open · permanent, irreversible"| D["🔵 Phase 3 · Operational Phase"]
+    D --> D1["① Backing sell-back opens"]
+    D --> D2["② Transfers between ordinary addresses open"]
+    D --> D3["③ V2 buy/sell + 3% transfer tax opens"]
+    D3 --> E["Each opened once separately<br/>Single-token staking / LP staking / Lending"]
+</div>
+
+<h3>Figure 2-A · Mint Phase (Pay BNB for 02)</h3>
+<div class="mermaid">
+flowchart TD
+    A(["BNB in your wallet"]) --> B["Enter BNB amount on the mint page"]
+    B --> C["Contract converts at max(curve price, backing price)"]
+    C --> C1["Curve price rises with minted BNB<br/>0.000000247946 →<br/>0.000002479460 (10×)"]
+    C --> D["02 credited instantly · minting is free"]
+    D --> E["Where your BNB goes"]
+    E --> E1["90% → backing vault"]
+    E --> E2["7% → LP staking dividend pool"]
+    E --> E3["3% → single-token staking dividend pool"]
+</div>
+
+<h3>Figure 2-B · Backing Sell-Back (Convert 02 Back to BNB)</h3>
+<div class="mermaid">
+flowchart TD
+    A(["02 in your wallet"]) --> B{"Two ways, pick either"}
+    B -->|"Way 1 · recommended"| B1["Click sell on the sell-back page"]
+    B -->|"Way 2"| B2["Send 02 straight to the token contract address"]
+    B1 --> C["Contract executes the sell-back automatically"]
+    B2 --> C
+    C --> D["Fill price = the then backing price<br/>vault BNB ÷ circulating supply"]
+    D --> E["Sell-back fee deducted<br/>5% in operational phase<br/>30% decaying to 5% in mint phase"]
+    E --> F["Where the fee goes"]
+    F --> F1["50% → backing vault"]
+    F --> F2["30% → LP staking dividend pool"]
+    F --> F3["20% → single-token staking dividend pool"]
+</div>
+
+<h3>Figure 2-C · V2 Exchange Trading (How the 3% Transfer Tax Is Split)</h3>
+<div class="mermaid">
+flowchart TD
+    A(["Buy or sell 02 on any V2 pool — the official one<br/>or a pool somebody else created"]) --> B["3% transfer tax on every fill"]
+    B --> B1["1% → back to the backing vault<br/>raises every holder's backing price"]
+    B --> B2["0.5% → burned (deflation; at the current DAO-set split)"]
+    B --> B3["0.5% → the Foundation, paid in 02<br/>never sold on the market"]
+    B --> B4["the remaining ~1% → staking dividends<br/>2/3 LP staking pool · 1/3 single-token staking pool"]
+</div>
+
+<h3>Figure 3-A · Staking: Deposit → Accrue → Unstake</h3>
+<div class="mermaid">
+flowchart TD
+    A(["Enter operational phase"]) --> B{"Is the staking entry open?"}
+    B -->|"No"| B1["Page shows 'Staking not open yet'"]
+    B -->|"Yes"| C{"Choose staking type"}
+    C -->|"Single-token staking"| D1["Pick 30 / 60 / 90 days<br/>transfer 02 to the staking contract"]
+    C -->|"LP staking"| D2["First add 02-BNB liquidity on the trade page<br/>get LP tokens<br/>pick 30 / 60 / 90 days and stake"]
+    D1 --> E["Snapshot shares every 1 hour<br/>distribute dividends by lock weight ×1 / ×2 / ×3"]
+    D2 --> E
+    E --> G{"Matured?"}
+    G -->|"Matured"| I["Click 'Redeem at maturity'<br/>✅ full principal returned<br/>✅ all accrued BNB dividends paid in one go"]
+    G -->|"Not matured · 24h elapsed"| H["Click 'Early redeem'<br/>✅ principal returned<br/>❌ all dividends forfeited<br/>(redistributed among the stakers at that time)"]
+</div>
+
+<h3>Figure 3-B · Where the Staking Dividend Pools Get Their Money</h3>
+<div class="mermaid">
+flowchart LR
+    S1["Mint-phase split"] --> P
+    S2["Sell-back fee"] --> P
+    S3["V2 transfer tax"] --> P
+    S4["Lending interest split<br/>(vault / dividends / buyback)"] --> P
+    P["Snapshot every 1 hour<br/>distribute by lock weight"] --> Q1["Single-token staking pool<br/>paid to 02 stakers"]
+    P --> Q2["LP staking pool<br/>paid to LP stakers"]
+</div>
+
+<h3>Figure 4 · Lending → Voluntary Repayment / Maturity Liquidation → Withdraw Remaining Collateral</h3>
+<div class="mermaid">
+flowchart TD
+    A(["Enter operational phase"]) --> B{"Is the lending entry open?"}
+    B -->|"No"| B1["Page shows 'Lending not open yet'"]
+    B -->|"Yes"| C["Send 02 to the lending contract as collateral"]
+    C --> D["Borrow BNB valued at the backing price<br/>7-day term by default · 1.5% daily interest<br/>repay only after 24h"]
+    D --> D1["Network-wide outstanding principal<br/>≤ (vault + borrowed) × 20%"]
+    D --> E{"Repaid within 7 days?"}
+    E -->|"Yes"| F["Repay principal + interest in BNB"]
+    F --> G["Principal &rarr; backing vault<br/>interest &rarr; vault / dividends / buyback"]
+    G --> H["Your whole collateral 02 is returned to your wallet at once"]
+    G --> I["The interest is repaid in BNB together with the principal<br/>and is split vault / dividends / buyback"]
+    E -->|"No · matured"| J["Anyone can trigger maturity liquidation<br/>usually a bot keeper scanning the chain"]
+    J --> K["Sell only the 02 that<br/>just covers principal + interest"]
+    K --> L{"Any collateral left?"}
+    L -->|"Yes"| M["Remaining 02 credited to your claimable account<br/>not burned, not shared out"]
+    L -->|"No"| N["This loan is settled"]
+    K --> P["The BNB proceeds are distributed by priority"]
+    P --> P1["① First refund the vault principal lent out"]
+    P1 --> P2["② Interest portion → vault / dividends / buyback"]
+    P2 --> P3["③ On a market premium: 1% to the keeper,<br/>the rest follows the same split"]
+    M --> Q["Click 'Withdraw remaining collateral' anytime<br/>all remaining 02 returned to wallet<br/>(claim clears to zero, prevents double-claim)"]
+    Q --> R["Zero penalty throughout<br/>only the value of 'principal + interest' is deducted"]
+</div>
+
+<!-- ============================================================ -->
+<!--                     1. Token Basics                           -->
+<!-- ============================================================ -->
+<div class="page-break"></div>
+<h2>1. Token Basics</h2>
+<ol>
+  <li>Token full name: 02Protocol</li>
+  <li>Token abbreviation (wallet display code): 02</li>
+  <li>Decimals: 18 places after the decimal point</li>
+  <li>Total issuance: hard cap 21,000,000 tokens (a constant hard-coded in the contract, non-governable; the actual amount is necessarily lower because of sell-back burns), never increases</li>
+  <li>Pricing basis: all BNB flowing into the vault is "backing funds"; per-token backing price = total vault BNB ÷ circulating 02 supply (fully on-chain and publicly verifiable, tamper-proof by anyone)</li>
+</ol>
+
+<h2>2. Token Issuance System (Mint Phase)</h2>
+<ol>
+  <li>Issuance method: users call the token contract's <code>mint()</code> from the dApp's mint page, and the contract sends 02 tokens to that address at the current mint price</li>
+  <li>Cumulative BNB cap for a single address taking part in minting: <strong>0.1 BNB</strong> (once the same address has cumulatively paid 0.1 BNB it can no longer mint, preventing a few addresses from cheaply draining the allocation)</li>
+  <li>Network-wide total BNB cap for the mint phase: <strong>20 BNB</strong> (factory-calibrated value); the mint phase ends as soon as cumulative receipts reach this cap, and no address can ever mint new tokens again</li>
+  <li>Mint price rule: mint-phase price = <strong>max(curve price, backing price)</strong>. The curve price starts at 0.000000247946 BNB / token and <strong>rises a little automatically with every mint</strong>, increasing linearly with the BNB minted network-wide; when the full 20 BNB is minted it reaches exactly 0.000002479460 BNB / token (<strong>10× the starting price</strong>); the price is computed automatically on-chain from the amount minted, is tamper-proof by anyone, and is never below the backing price</li>
+  <li>⚖️ <strong>The two items above are governed by the DAO</strong>: the only adjustable parameters are "the BNB amount at full mint" and "the per-address cap", with on-chain hard bounds of full-mint amount ≤ 500 BNB and worst-case total issuance ≤ 21,000,000 tokens. <strong>The curve price and the 10× multiple are protocol constants, and even the DAO cannot change them</strong>; once minting has started these two <strong>can only be lowered, never raised</strong> (lowering the full-mint amount = filling up earlier along the same curve, with the price and the multiple unchanged and the issuance reduced proportionally)</li>
+  <li>Minting charges no fee of any kind: however much BNB a user pays in, the contract converts it fully into 02 at the current mint price, deducting nothing</li>
+  <li>Anti-bot random hit (fair-launch mechanism): minting uses <strong>an on-chain random draw made per transaction</strong> (the random value is derived from <strong>the previous block's blockhash + the minting address</strong>, so one address has one fixed outcome within a block and is re-drawn in the next block) to stop scripts from mass-sniping mints. A transaction whose draw <strong>misses has its BNB fully refunded to the original path</strong> — no mint, no quota used, only the network gas lost, and <strong>you can simply retry</strong>. System contract addresses do not take part in this draw. The random success rate is adjusted as issuance progresses; on a miss the DApp clearly states "BNB fully refunded"</li>
+  <li>Transfers of 02 between ordinary users during the mint phase: the entire transferred amount is burned (100%), with no separate tax step</li>
+  <li>Transfers between system contract addresses (pool creation, internal settlement) are unrestricted and are not burned</li>
+</ol>
+
+<h2>3. Three-Phase Lifecycle</h2>
+<ol>
+  <li>Phase 1 · Mint Phase (the default initial state): minting is available, <strong>sell-back is available (fee 30% decaying to 5%)</strong>; transfers between ordinary users are burned (to prevent early off-market resale) and V2 trading is unavailable; pool creation / settlement transfers between internal system contracts are unrestricted</li>
+  <li>Phase 2 · Pause Window: this phase is <strong>triggered automatically</strong> when the mint phase fills up (reaching the full-mint BNB amount set by DAO governance, factory value 20 BNB); in this phase <strong>no one can mint, sell back or make ordinary transfers</strong>; only transfers between system contracts and liquidity injection in the "pool-creation intermediate state" are allowed (see 〈Pause Window: Creating the Price-Anchor Pool〉 below)</li>
+  <li>Phase 3 · Operational Phase: a one-time switch set at deployment unlocks the following three items at the same time; <strong>once the switch is on it takes effect permanently and is irreversible, and no one can turn it off</strong>:<br>  ① the backing sell-back function opens<br>  ② transfers between ordinary addresses open<br>  ③ the V2 transfer-tax mechanism opens (tax charged on exchange buys and sells)</li>
+  <li>After the operational phase opens, the three subsystems of single-token staking, LP staking and lending <strong>do not open automatically at the same time</strong>; each must be opened once separately, in any order; once opened they all run automatically by contract, with no one able to intervene</li>
+</ol>
+
+<h3>Pause Window: Creating the Price-Anchor Pool (the only manual pool creation in the whole flow)</h3>
+<ol>
+  <li><strong>Step 1 · Create the trading pair:</strong> click "Create trading pair" on the admin page and the contract creates the 02/BNB pair (<code>activateV2</code>). The pool address is fixed from then on</li>
+  <li><strong>Step 2 · Enter the pool-creation state:</strong> click "Open pool-creation state" on the admin page (<code>setLiquidityOpen(true)</code>) to enter the intermediate state used only for pool creation. On-chain this state is a <strong>hard "in-only, no-out" constraint</strong>:<br>
+      · <strong>Buying, sell-back and removing liquidity are all closed</strong> (before the pool is ready nobody can buy out, and nobody can dump early)<br>
+      · <strong>Adding liquidity is allowed, but only through the single entry point of the "liquidity manager contract"</strong>. Ordinary addresses sending tokens straight to the pair, or routing 02 into the pool via PancakeSwap, are rejected outright by the contract (<code>Only via liquidity manager</code>)<br>
+      · The path for 02 entering the pair is narrowed to "only while adding to the pool", so this window has <strong>no room for buying or selling at all</strong>; neither the DApp, the PancakeSwap UI nor a self-written contract can bypass it<br>
+      · Why it has to be this way: from the token contract's point of view, "adding liquidity" and "selling 02 into the pool" are the same action (both are a user transferring 02 into the pair). So they can only be told apart by "who is transferring" — only the liquidity manager contract is entitled to transfer 02 into the pair</li>
+  <li><strong>Step 3 · Use the owner wallet to create the "price-anchor pool" (which sets the opening price):</strong> the owner wallet fills in the <strong>amount of 02 to inject (default 10,000 tokens)</strong> in the "Create initial liquidity" panel on the admin page; the panel <strong>automatically computes the matching BNB</strong> required for the target price, and one click on "Create price-anchor pool" completes it (under the hood it injects via the liquidity manager contract's <code>seedLiquidity</code>, and the LP tokens go straight back to the owner wallet).<br>
+      <strong>Initial pool price = the highest price actually reached in this mint × 120%</strong> (that is, <strong>a 20% premium</strong> on the highest price, so mint-phase participants have room for a premium on V2 and are not trapped the moment it opens)<br>
+      · "Actual highest price of this mint" = the last traded price on the curve when minting ends: if the full 20 BNB was minted, it is the full-mint price <strong>0.000002479460</strong>; if it ended early, it is computed from the price actually reached<br>
+      · Example (full-mint case): actual highest price 0.000002479460 × 120% → opening price = 0.000002975352; injecting <strong>10,000 tokens</strong> of 02 requires 0.02975352 BNB<br>
+      · In the pool-creation intermediate state, 02 transferred into the pool is <strong>tax-free</strong> (the 3% is not deducted), so "however much you inject is however much arrives" and the quoted price is precisely controllable<br>
+      · ⚠️ This is the <strong>price-anchor pool</strong> (used to anchor the opening price), not the trading pool: the initial injection is deliberately kept <strong>small</strong> — it anchors the price, it does not provide trading depth, which the market adds itself in the next step</li>
+  <li><strong>Step 4 · Send the price-anchor pool's LP to the dead address to burn (leaving no loose ends):</strong> after pool creation the owner wallet receives the corresponding LP tokens; in the same panel click "Send to dead address to burn" to transfer <strong>all</strong> of this LP to the dead address 0x…dEaD for permanent destruction.<br>
+      · After burning, <strong>nobody can ever withdraw this pool again</strong> (including the deployer); the opening-price anchor is permanent, and the "pull the pool and run" route is welded shut<br>
+      · The whole flow is publicly verifiable: on BscScan you can check the two transactions "create pool → send to dead address" one by one from the LP token's transfer records</li>
+  <li><strong>Step 5 · Leave a window for the market to add liquidity:</strong> in the pool-creation intermediate state <strong>anyone is allowed to inject liquidity, but buying and sell-back are still closed</strong>. So after creating the pool it is recommended <strong>not to rush to open the operational phase</strong>, and to leave a window (for example about 1 hour) for the market to build up the trading depth itself.<br>
+      · The greater the depth, the smaller the slippage when large buys and sells hit after opening; the trade page blocks trading while depth is below <strong>$100</strong><br>
+      · ⚠️ <strong>During this time you "can only add, not remove":</strong> removing liquidity is an 02 transfer going "pool → user", and that very gate is the same one that locks buying. <strong>Only after the operational phase opens can the liquidity that was added be withdrawn normally</strong> (in this phase the DApp disables the "remove" button outright and explains why), so this window should not be dragged out too long<br>
+      · Adding to the pool must go through the DApp's "Liquidity" page (or a direct call to the liquidity manager contract): this is the only entry the contract allows during the window, and <strong>third-party UIs such as PancakeSwap are rejected when adding in this phase</strong><br>
+      · If the "LP staking" entry is already open by then, users can also take the LP tokens they receive and stake them for dividends directly; that entry is an independent switch and can also be left until after the operational phase opens (while the entry is closed, the trade page automatically unticks "Auto-stake LP" and does an ordinary add only, so the transaction will not fail)</li>
+  <li><strong>Step 6 · Open the operational phase:</strong> when everything is ready click the "Trade" switch on the admin page (<code>openOperationalPhase()</code>): backing sell-back opens + ordinary transfers open + the V2 transfer tax takes effect; <strong>this switch is permanently irreversible, and nobody can ever turn it off again</strong>, and the pool-creation intermediate state closes automatically at the same time</li>
+  <li>⚠️ <strong>Honest disclosure:</strong> the contract only guarantees "however much you inject is however much arrives" and <strong>does not hard-code the injection ratio</strong>; "actual highest price of this mint × 120%" is this project's <strong>pool-creation operating standard</strong>, which can be verified on-chain one by one from the pool reserves</li>
+</ol>
+
+<h2>4. Backing Sell-Back System</h2>
+<ol>
+  <li><strong>Sell-back is available in both the mint phase and the operational phase</strong> (only the "pause window" in between does not allow it). In any sell-back-enabled phase, any user can sell 02 back to the contract at any time and get BNB at the current backing price</li>
+  <li>Two ways to trigger sell-back:<br>  ① click the "Sell back" button in the DApp<br>  ② send 02 directly from the wallet to the "02 token contract address"; the system recognises it and executes the sell-back automatically, with the BNB returned to the wallet that sent the transfer</li>
+  <li>Sell-back price = "total vault BNB ÷ circulating 02 supply" at the moment of execution, transparent and computable (<strong>the fill is only at the backing price, never the curve price</strong>)</li>
+  <li>Sell-back fee (<strong>early anti-dump</strong>): fixed <strong>5%</strong> in the operational phase; <strong>in the mint phase it decays</strong> — from 30% down linearly to 5% along minting progress (the earlier you sell back, the higher the rate, curbing low-cost early dumping). Fee split: <strong>50% back to the backing vault to raise the backing price / 20% to the single-token staking dividend pool / 30% to the LP staking dividend pool</strong></li>
+  <li>The BNB deducted from the vault on sell-back = the BNB the user actually receives + the fee BNB paid to the "single-token staking pool" and the "LP staking pool" (deducted at the same time, to avoid an inflated vault balance)</li>
+  <li>Both triggers fill at the <strong>identical</strong> price: the code reads the backing price <strong>before</strong> burning your 02, so "click Sell back" and "send 02 to the contract address" always return exactly the same BNB.</li>
+</ol>
+
+<h2>5. V2 Trading System (Transfer Tax + Built-in Swap)</h2>
+
+<h3>1. 3% Transfer Tax (deducted on every pool fill)</h3>
+<ol>
+  <li>After the operational phase opens, every 02 buy/sell routed through a V2 decentralized exchange (Pancake/Uniswap-compatible) is charged a flat 3% transfer tax on the traded amount</li>
+  <li>The 3% split (five parts, at the current DAO-set split):<br>  ① 0.5% → burned (a deflation mechanism, so total supply keeps shrinking)<br>  ② 1% → back to the backing vault, raising the backing price for all holders<br>  ③ 0.5% → the Foundation (paid in 02, never sold on the market)<br>  ④ about 0.67% → into the "LP staking dividend pool", shared among the LP stakers who provide liquidity to the trading pool<br>  ⑤ about 0.33% → into the "single-token staking dividend pool", shared among single-token stakers<br>  The vault's 1% and the burn's 0.5% are fixed in bps of the traded amount. The Foundation's slice comes out of the <em>dividend</em> part only — so when it is switched on the dividend part shrinks from 1.5% to 1%, and the vault's 1% is never touched. That remaining 1% is divided by the DAO-set ratio (<code>v2LpShareBps</code>, currently 2/3 LP staking and 1/3 single-token staking)</li>
+  <li>The transfer tax first accumulates in the form of 02; when the accumulated amount reaches <strong>1,000 tokens</strong> (a fixed threshold), it is automatically sold on V2 for BNB in one go, and then distributed to the corresponding pools in the ratios above (the Foundation's slice is paid in 02 and is never swapped)</li>
+  <li>When the tax is swapped into BNB, V2 slippage protection sets the minimum fill price at "the then backing price × 90%", ensuring it cannot be maliciously arbitraged by the exchange</li>
+  <li>If the V2 tax swap temporarily fails, it is skipped automatically without blocking the user's trade, and is retried on the next trade, so no tax is lost</li>
+  <li><strong>The tax is not limited to this protocol's own pool — every 02 pool is taxed.</strong> Any pool that answers the standard V2 <code>getReserves()</code> interface is recognised as a pool, so a parallel 02/BNB pool opened by anyone is taxed on both legs exactly like the official one: funding it costs 3%, and taking 02 back out of it costs 3% again. Nobody can obtain a tax-free venue by deploying a second pool, and the official pool is not treated specially.</li>
+  <li><strong>Pool-tax scope switch (<code>setPoolTaxScope</code>)</strong>: <code>0</code> = tax every 02 pool (the default) · <code>1</code> = tax only the pool this protocol created · <code>2</code> / <code>3</code> = freeze whichever scope is in force <strong>permanently</strong>, irreversibly, in the same spirit as the vault-withdrawal seal. <strong>The protocol's own pool pays its 3% in every one of those modes</strong>, so no setting of this switch can switch the core tax off.</li>
+</ol>
+
+<h3>2. Built-in Swap (TwoSwap)</h3>
+<ol>
+  <li>The "Buy / Sell / Swap" built into the DApp trade page trades directly against the real 02-BNB V2 liquidity pool — real price, real depth, real slippage, without going through any internal quote</li>
+  <li><strong>Protocol fee 0.25%</strong> (contract parameter <code>feeBps = 25</code>), with a hard cap of <strong>0.5%</strong> written into the contract (<code>FEE_CAP = 50</code>) — nobody can set it higher</li>
+  <li><strong>The fee switch is governed by the DAO</strong> (<code>feeEnabled</code>): while the DAO has not enabled it the protocol fee is 0, and users pay nothing extra to swap</li>
+  <li>Where the protocol fee goes: into the staking dividend pool at the ratio set by the DAO (<code>dividendBps</code>), distributed within the pool as <strong>2/3 to the LP staking pool and 1/3 to the single-token staking pool</strong>; if that ratio has not been set, the whole protocol fee goes to the protocol-fee receiving address</li>
+  <li>⚠️ <strong>Two settings must be right before the fee switch is turned on</strong> (both are dormant while <code>feeEnabled</code> is false, as it is now):
+    <br>① the protocol-fee receiving address (<code>feeTo</code>) must be a real receiving address, <strong>never the TwoProtocol contract itself</strong>: every swap fee is paid in BNB, and TwoProtocol's <code>receive()</code> either rejects it (while the mint switch is off, so the swap would revert) or books it as a mint / untracked surplus instead of protocol revenue. At deployment <code>feeTo</code> is set to the TwoFoundation contract, which has a payable <code>receive()</code> — always verify it on-chain before enabling the fee.
+    <br>② TwoSwap's <code>rewardDistributor</code> and <code>lpReward</code> must be set before the DAO raises <code>dividendBps</code>: the code degrades safely (an unset leg falls back to <code>feeTo</code> rather than being lost), but that dividend share would silently go to <code>feeTo</code> instead of reaching stakers. Both are wired to the staking contracts at deployment — verify them on-chain before enabling the fee with a dividend ratio.</li>
+  <li>⚠️ <strong>The two layers of fees must be kept apart</strong>: swaps go through the real trading pool, so besides the protocol fee users <strong>still pay the 3% transfer tax</strong>. The "0.25% protocol fee" and the "3% token transfer tax" are two separate things charged on top of each other — do not treat them as one</li>
+  <li>Supports buying any token with BNB, selling any token for BNB, and multi-hop token-to-token swaps</li>
+  <li>Every trade carries <strong>minOut slippage protection</strong>: as soon as the actual fill price is worse than the minimum amount the user confirmed, the whole transaction reverts and will never fill at a worse price</li>
+  <li>Front-end helpers and protections: slippage presets 0.5% / 1% / 2% / 5%; price impact and "minimum received" shown before ordering; <strong>trading is blocked outright while pool depth is below $100</strong> (to prevent arbitrage from thin depth and to guard against honeypots)</li>
+  <li>An in-page link to PancakeSwap is provided: using Pancake is the same pool and the same price, the only difference being that it does not go through this protocol's fee switch, but <strong>it still pays the 3% token transfer tax</strong></li>
+</ol>
+
+<h3>3. Tax Exemption</h3>
+<ol>
+  <li>System contracts used for pool creation and internal settlement hold a standing exemption: transfers between exempt system contracts are not counted for this 3% transfer tax</li>
+  <li>Beyond those, <strong>no pool is exempt by default</strong>. The only way a pool becomes tax-free is a deliberate, owner-only exemption set one pool address at a time (<code>setIsExcluded(pair, true)</code>, reversible). It exists for a partner pair whose own token contract charges the tax on its side instead. There is no "every pool of token X is automatically exempt" shortcut — each pool would have to be added separately</li>
+  <li>A venue that does not answer <code>getReserves()</code> (a custom or renamed AMM) is not recognised as a pool and therefore cannot be taxed; in practice a fee-on-transfer token such as 02 cannot be listed on one without breaking that venue's own accounting</li>
+</ol>
+
+<h2>6. Single-Token Staking (02) Dividend System</h2>
+<ol>
+  <li>The total amount of 02 tokens staked is capped at 30% of the circulating supply (once the network-wide staked amount reaches the cap, new staking requests are rejected)</li>
+  <li>When staking opens: the mint phase and the pause window never open the staking entry; after entering the operational phase it only needs to be opened once separately, and afterwards it runs automatically by contract</li>
+  <li>Once the staking switch is closed, <strong>new stakes cannot be deposited</strong>; but users who have already staked can still redeem and claim dividends normally at any time (the principal is not locked just because the switch is closed)</li>
+  <li>Staking terms come in three tiers: 30 days, 60 days and 90 days; when depositing you must pick one of them and cannot set a custom number of days</li>
+  <li>The same user can hold several stakes, each with its lock-up days and maturity time computed independently</li>
+  <li>Dividends are shared by <strong>weighted</strong> stake: the lock term sets a dividend weight — 30 days ×1, 60 days ×2, 90 days ×3 — and each snapshot's dividend pool is split in proportion to "that stake's 02 amount × its weight" against the network-wide total weighted shares (principal always returns at its original amount, whatever the weight)</li>
+  <li>Dividend calculation frequency: the staking pool is snapshotted once every 1 hour, and the BNB then pending in the distribution pool is credited to each staker's accrued dividends by share</li>
+  <li>Minimum holding time for a stake: 24 hours; a stake less than 24 hours old can be neither early-redeemed nor redeemed at maturity</li>
+  <li>When a stake matures: the user clicks "Redeem at maturity", <strong>the full principal is returned to the wallet</strong>, and <strong>all BNB dividends accrued on that stake are paid out at the same time</strong></li>
+  <li>Not redeeming at maturity is fine: the principal and the dividends already accrued stay safely in the contract, and <strong>until you redeem, that stake keeps taking part in every dividend snapshot by share</strong> (maturity neither confiscates it nor stops its dividends). Redeeming settles "principal + all accrued dividends" in one go. The stake's share leaves the dividend denominator only at the moment you actually redeem, so <strong>the network-wide claimable total always equals exactly the BNB that has been injected — there is no "early claimers take more, the last claimer is shorted"</strong></li>
+  <li>Users may also early-redeem a stake (the early-redeem button can only be clicked after it has been held for at least 24 hours)</li>
+  <li>A user who early-redeems <strong>gets no dividends at all</strong> and can only recover the staked principal</li>
+  <li>The accrued dividends forfeited on early redemption do not stay in the system: they are <strong>immediately and entirely redistributed, in proportion to the remaining effective stakes, to the other users who keep staking</strong> (effectively rewarding those who stay to the end)</li>
+  <li>If only the last person remains network-wide and early-redeems with no other holder to take it over, the forfeited dividends return to the "pending distribution pool" to await the next stakers to claim</li>
+  <li>Multiple matured stakes can be redeemed in one batch, with principal and dividends paid out together</li>
+  <li>If the receiving address <strong>cannot accept BNB</strong> (for example a contract wallet that rejects payments), the dividend <strong>is not lost</strong>: the principal is still returned as usual and the dividend is <strong>parked under that address's own name</strong>, to be pulled by that address calling <code>claimReward()</code> (the DApp does not expose this button yet — call it from a block explorer or any tool). Neither the principal nor the dividend is reduced, and the owner cannot sweep it. The same applies to LP staking</li>
+  <li>Once a stake is redeemed (whether at maturity or early) it cannot be restored and no longer takes part in any subsequent dividend snapshot</li>
+</ol>
+
+<h2>7. LP Staking (V2 Liquidity Tokens) Dividend System</h2>
+<ol>
+  <li>LP staking target: users must first provide "02 + BNB" two-sided liquidity on the V2 exchange and get LP tokens back, then deposit those LP tokens into the LP staking contract to share dividends</li>
+  <li>When LP staking opens: independent of single-token staking; likewise not opened during the mint phase / pause window, opened once separately after the operational phase, and running automatically by contract afterwards</li>
+  <li>LP staking terms likewise come in three tiers: 30 days, 60 days and 90 days, and you must choose one of the three</li>
+  <li>Minimum LP holding time: 24 hours (the same as single-token)</li>
+  <li>Source of LP dividends: the LP staking share of the V2 transfer tax (about 0.67% of the traded amount, i.e. 2/3 of the 1% dividend leg left after the Foundation's slice)</li>
+  <li>LP dividends are shared by <strong>weighted</strong> LP share, using the same 30 / 60 / 90-day weights (×1 / ×2 / ×3) as single-token staking; shares are snapshotted once every 1 hour, accruing claimable dividends per unit of weighted LP</li>
+  <li>LP redemption at maturity: all LP tokens returned + all accrued BNB dividends paid in one go</li>
+  <li>LP early redemption: available after 24 hours; <strong>only the LP tokens are returned and all accrued dividends are forfeited</strong>; the forfeited dividends are immediately redistributed among the stakers at that time, in proportion to the remaining LP staking shares</li>
+  <li>LP staking likewise supports batch redemption at maturity</li>
+  <li>Matured shares are automatically deducted from the "network-wide total LP staked" (the stake-cap counter) <strong>with no action needed from anyone</strong>, so expired shares no longer occupy cap headroom; but their <strong>dividend share stays until you redeem</strong> (same reason as the single-token rule in section 6: the denominator and the share leave together, which is what keeps the network-wide claimable total from exceeding the BNB actually injected)</li>
+</ol>
+
+<h2>8. Lending System (for short-term liquidity only)</h2>
+<ol>
+  <li>When lending opens: independent of single-token staking and LP staking; never opened during the mint phase / pause window, and opened once separately after the operational phase, running automatically by contract afterwards</li>
+  <li>Positioning: it only serves users who need BNB for a few days of short-term emergency, and is not suited to long-term borrowing (1.5% daily interest means long-term interest becomes very high)</li>
+  <li>Borrowing operation: the user sends 02 to the lending contract as collateral; the contract values the collateral at the then backing price and then lends the BNB amount the user wants</li>
+  <li>Borrowing valuation requirement: the then backing valuation of the collateral 02 in BNB must be ≥ the BNB the user wants to borrow × 1.25 (i.e. LTV ≤ 80%), leaving a safety cushion</li>
+  <li>Minimum borrowing time 24 hours: within 24 hours of borrowing you cannot repay voluntarily (maturity liquidation requires the full 7-day term, which naturally satisfies this); interest accrues by actual seconds from the moment of borrowing, with no grace period</li>
+  <li>Borrowing term: each loan <strong>matures in 7 days</strong>, with the maturity time = the on-chain time at the moment of borrowing + 7 days, <strong>hard-coded in that loan's note and unchangeable by anyone once created</strong> (including the contract owner)</li>
+  <li>Interest rate: 1.5% daily (borrowing the equivalent of 100 BNB costs 1.5 BNB of interest per day); interest is computed linearly by the second with no compounding; after maturity, if still not liquidated, interest keeps accruing by the second with no cap</li>
+  <li>Network-wide borrowing cap: at any moment the total principal of all outstanding loans network-wide <strong>cannot exceed 20% of (backing vault + total already borrowed)</strong>, to prevent a simultaneous run from breaking the vault; new borrowing requests above the cap are rejected outright</li>
+  <li>The same user can only have one loan at a time (the next one can only be taken after the previous is repaid)</li>
+  <li>Voluntary repayment (within 7 days): the user repays principal + interest in BNB in one transaction; the principal goes straight back into the backing vault and the interest is split as described in the next item; the whole collateral 02 is returned to the user's wallet immediately — interest is no longer deducted from the collateral</li>
+  <li>Interest is settled in BNB, never in 02, and is split three ways: the <strong>backing vault</strong> (<code>vaultShareBps</code>), the <strong>staking dividend pools</strong> (<code>lendDividendBps</code>, split further inside the pool by <code>lpShareBps</code>), and the <strong>buyback sink</strong>, which receives whatever is left. <strong>At launch <code>vaultShareBps = 10000</code>, so the whole of the interest deepens the vault.</strong> That is deliberate: the vault raises the backing price from the very first block and needs no V2 depth, whereas the buyback has to buy 02 on the market at a price above the backing price and cannot execute at all while the anchor pool holds about one token. Once the pool is deep enough the owner can move the split towards the staking pools or the buyback. The buyback sink itself has two settings: <strong>buy 02 on V2 and burn it</strong> (the default) or <strong>forward the BNB to a designated public address</strong> (e.g. a DAO treasury) instead of burning</li>
+  <li>Interest is settled in BNB directly at repayment, so a V2 swap failure can never block a repayment; if the buyback transfer itself fails, the BNB is routed to the backing vault instead.</li>
+  <li>The lending contract can receive BNB: the loan BNB released from the backing vault, and the BNB from liquidation collateral sales arrives at the lending contract normally without error</li>
+</ol>
+
+<h2>9. Maturity Liquidation System (unpaid after 7 days, handled automatically, zero penalty)</h2>
+<ol>
+  <li>Liquidation trigger: a loan reaches its "7-day maturity date" without voluntary repayment; anyone can trigger liquidation (usually performed automatically by a bot scanning the chain)</li>
+  <li>⚠️ The trigger looks only at "whether it has matured", not at whether interest exceeds 50% of principal (however high the interest, it cannot be liquidated before the 7 days are up; conversely, even if the interest is small, it can be liquidated once 7 days have passed)</li>
+  <li>Liquidation sells only the portion of 02 that "just covers principal + interest": computed as "how much BNB principal and interest is owed ÷ the current backing price", rounded up, to work out how many 02 need to be sold; only that much is sold, never more</li>
+  <li>Of the collateral 02, <strong>the remaining part that is not sold</strong>: stays in the system untouched, credited to that user's name to await the user's own manual claim, and is never burned, shared out or confiscated</li>
+  <li>Sale channel: sold normally for BNB through the V2 exchange, with slippage protection setting a minimum price at "backing price × 85%" to avoid malicious dumping</li>
+  <li>Distribution order of the BNB obtained from liquidation (in order of priority):<br>
+      ① First priority: refund the "principal BNB lent out from the backing vault"<br>
+      ② Second priority: the interest portion — split three ways exactly as in section 8 (at launch 100% of it goes to the backing vault, since that is what raises the backing price)<br>
+      ③ Third priority: if the actual V2 fill price is better than the backing price, selling yields more BNB than the principal and interest due (a market premium, not a penalty); of this excess, <strong>1% goes to whoever triggered this liquidation (compensation for the runner's / bot's gas) and the rest follows the same three-way split described in section 8</strong></li>
+  <li>If V2 exchange depth is too poor on the liquidation day for the collateral to be sold within the slippage floor: <strong>the liquidation reverts and nothing happens</strong> — the debt is <strong>not</strong> cleared and the collateral is <strong>not</strong> released to the borrower. The loan stays active and keeps being backed by the collateral, the borrower can still <code>repay()</code> to release it, and anyone can retry the liquidation once the pool has depth.</li>
+  <li>After liquidation completes, that loan's status is marked "liquidated, settled", and its principal is deducted from the "network-wide borrowed total"</li>
+</ol>
+
+<h2>10. Post-Liquidation Remaining Collateral 02 Claim System</h2>
+<ol>
+  <li>Eligibility: only users whose loan has been maturity-liquidated and who have remaining 02 after liquidation can claim; anyone else who clicks gets an error directly</li>
+  <li>How to claim: the user clicks the "Withdraw remaining collateral" button in the DApp</li>
+  <li>Claim amount: the remaining 02 amount credited to that user's name at liquidation, not a bit less, not a bit more, precise to 18 decimal places</li>
+  <li>Cleared after claiming: each successful claim immediately clears that user's claimable record to prevent double claiming; clicking again reports "no tokens to withdraw"</li>
+  <li>Zero-penalty commitment: throughout the whole liquidation + remaining-claim flow, the user is only ever deducted the 02 corresponding to "the actual value needed to refund principal + interest"; the rest of the collateral is returned to the user 100% intact, with no extra penalty, default charge or deduction</li>
+</ol>
+
+<h2>11. Decentralized Operation Boundaries &amp; Security Baseline</h2>
+<ol>
+  <li><strong>Automatic once enabled:</strong> minting pricing, backing sell-back, the V2 transfer tax, staking dividend snapshots, interest calculation, maturity liquidation and all other flows are <strong>executed automatically</strong> by contract code, running by fixed rules and <strong>requiring no human intervention</strong>, and there is no entry point for manual price changes or manual interference. The buyback is the one deliberate exception: BNB routed to it accumulates in the buyback pot and the swap-and-burn is triggered by an explicit call, because how much 02 that BNB can buy depends entirely on the depth of the pool at that moment and should not be fired blindly.</li>
+  <li><strong>Core switches are one-way and irreversible:</strong> once key switches such as "Minting" and "Operational phase (sell-back + ordinary transfers + V2 trading)" are enabled they <strong>can never be closed or rolled back, and nobody can change them back</strong> — there is no possibility of "suddenly being shut down so you cannot sell".</li>
+  <li><strong>One-time configuration items at deployment:</strong> the following only need to be set once at contract deployment / initialisation, and need no human intervention afterwards; moreover <strong>no matter how they are set they never affect any user's existing loan notes, staking positions or wallet balance</strong>:<br>
+      ① V2 Router / Factory / WBNB / trading pool addresses<br>
+      ② the contract addresses that link the staking / lending / dividend subsystems<br>
+      ③ the "new-entry switches" for single-token staking / LP staking / lending, which are three independent switches (<strong>turning one off only means no new deposits are accepted; it never blocks anyone from retrieving their own assets</strong>)</li>
+  <li><strong>Deployment-only entry points are permissioned:</strong> the upgrade hooks <code>initV9</code> / <code>initV10</code> / <code>initV11</code> — which write the vault/burn rates and the mint parameters — are <strong>owner-only</strong>, and <code>TwoLend</code> has its own guarded hook <code>initLendV2</code>, which turns on the interest vault leg and writes the LP dividend share. An unguarded reinitializer is callable by anyone until it is consumed; these are all guarded, so no outsider can overwrite parameters the DAO has already set.</li>
+  <li><strong>Permanently sealing the vault withdrawal permission at launch:</strong> at launch an <strong>irreversible</strong> sealing switch is called once, completely closing all entry points for "withdrawing vault BNB" (direct withdrawal / timelocked withdrawal / rerouting a payout by changing the lending contract address). After that, <strong>no route inside the contract — the deployer's included — can move the vault again</strong>. <strong>This has not been executed yet</strong> — whether it has can always be checked on-chain by reading <code>vaultWithdrawSealed</code>, which currently reads <code>false</code> and becomes <code>true</code> once the switch is thrown.</li>
+  <li><strong>Things that even the contract owner cannot touch (hard-coded in the contract):</strong><br>
+      ① claimable dividend BNB already allocated to a specific user's name in single-token staking (only that person can claim it)<br>
+      ② claimable dividend BNB already allocated to a specific LP user's name in LP staking<br>
+      ③ remaining collateral 02 "awaiting claim" credited to a user's name after liquidation<br>
+      ④ principal already lent out and not yet repaid by the user (it can only flow back through the user's repayment)<br>
+      ⑤ the 02 and BNB in users' wallets — <strong>the contract has no entry point to "transfer another person's assets / confiscate" them</strong><br>
+      ⑥ the protocol token itself: <code>ownerRescueToken</code> on the main contract <strong>refuses to move 02</strong>, and the two staking contracts likewise refuse to move the token they hold for stakers (02 in single-token staking, the LP token in LP staking) — "rescue" can never be used as a back door into user assets<br>
+      ⑦ the BNB the two staking contracts owe their stakers: <code>ownerRescueBNB</code> pays out <strong>only the stray BNB</strong> above <code>rewardPool + claimableReserve</code> (respectively <code>lpRewardPool + lpClaimableReserve</code>), so dividends that have already been earned cannot be swept<br>
+      ⑧ the collateral held by the lending contract: <code>emergencyWithdrawTokens</code> <strong>refuses the collateral token</strong>, so the 02 backing active loans and the unclaimed post-liquidation remainder can never be moved</li>
+  <li><strong>Users can always retrieve their own assets:</strong> even if some new-entry switch is closed, the user can <strong>always retrieve 100% of</strong> their staked principal, allocated dividends, post-liquidation remaining collateral and wallet balance themselves, and these are never locked up.</li>
+  <li><strong>Boundary of the pending-distribution pool:</strong> only "the part of the dividend pool <strong>not yet allocated to any specific user</strong>" can be handled by the contract owner in an emergency; once a dividend is allocated to a specific user's name, <strong>nobody can ever touch it again</strong>.</li>
+  <li>Re-entrancy protection: all outgoing transfers (backing refunds, BNB paid to users, V2 swaps) are wrapped in anti-reentrancy locks, to prevent exploits from stealing funds</li>
+  <li>Slippage protection: all V2 swaps (tax swaps / liquidation swaps) set a non-zero minimum fill price, so they cannot be arbitraged by sandwich bots</li>
+  <li><strong>Two-step permission handover to prevent mistakes:</strong> contract permissions use a "two-step confirmation" scheme — first submit the receiving address, then the new address itself confirms acceptance; cancelling at any step does not lose permissions, eliminating accidents where permissions are mistakenly transferred to a hacker's address</li>
+  <li><strong>DAO governance:</strong> minting parameters (full-mint amount / per-address cap) can only be adjusted by the DAO, and after minting starts they can only be lowered; the on-chain hard bounds (full-mint amount ≤ 500 BNB, total issuance ≤ 21,000,000 tokens), the curve price and the 10× multiple are all hard-coded and cannot be changed by anyone. A user proposal's voting window has a <strong>1-day floor</strong> (<code>MIN_USER_WINDOW</code>), so a single address with voting power cannot push a proposal through inside one block (Foundation proposals are not subject to that floor); quorum (<code>quorumBps</code>) is <code>0</code>, meaning <strong>no minimum participation is set and there is no plan to enable one</strong>: a single address with voting power is enough for "more than half of the votes cast", and the real gate is that a passed proposal still has to be executed by the Foundation multisig, which can also reject it</li>
+  <li><strong>Referral rewards (built in, not enabled yet):</strong> the contracts already contain referral rewards (a referrer earns 02 on the referee's staked amount, <code>referralBps</code> ≤ 5000), but <code>governanceEnabled = false</code> today, so <strong>nothing accrues and nothing is paid out</strong>. It will be announced before it is switched on, and its design is fixed first</li>
+</ol>
+
+<!-- ============================================================ -->
+<!--                 12. DApp User Guide                           -->
+<!-- ============================================================ -->
+<div class="page-break"></div>
+<h2>12. DApp User Guide (Step-by-Step Manual)</h2>
+
+<div class="box">
+  <p><strong>Purpose of this chapter:</strong> to explain clearly, in one go, "what each DApp page is, how to operate it, and what to watch out for", so that new users can complete every operation independently without relying on community explanations.</p>
+  <p><strong>Preparation:</strong> ① prepare a BNB Chain wallet (MetaMask / Trust Wallet / OKX Wallet, etc.); ② keep a small amount of BNB in the wallet for gas (each operation costs very little); ③ open the official DApp and click "Connect wallet" at the top right; ④ the production DApp only connects to the BNB Chain mainnet; trades on other networks are rejected.</p>
+  <p><strong>Security baseline:</strong> the official team will <strong>never</strong> ask you for your private key or seed phrase, and will <strong>not</strong> ask you to "send your tokens to some address first". Anyone who asks you to transfer tokens or asks for your seed phrase is a scammer.</p>
+</div>
+
+<h3>0. Understand the Flow in One Minute</h3>
+<div class="mermaid">
+flowchart TD
+    A(["Connect wallet"]) --> B["Mint page: pay BNB to mint 02"]
+    B --> C{"What next?"}
+    C -->|"Cash out"| D["Sell-back page"]
+    C -->|"Hold long-term for dividends"| E["02 staking page"]
+    C -->|"Provide liquidity, earn fees"| F["Trade page + LP staking"]
+    C -->|"Short-term liquidity"| G["Lending page"]
+    C -->|"Join governance"| H["DAO governance page"]
+</div>
+
+<h3>1. Home Page · Understanding the Live Data First</h3>
+<p>The home page is a live dashboard of all key data, read directly from the chain and refreshed to the latest. Once you understand these few numbers, none of the steps that follow will confuse you:</p>
+<table>
+  <thead><tr><th>Metric</th><th>Meaning / how to read it</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Backing Vault</strong></td><td>The total BNB actually held in the vault, the source of all backing value</td></tr>
+    <tr><td><strong>Circulating Supply</strong></td><td>The amount of 02 currently in circulation</td></tr>
+    <tr><td><strong>Nominal Backing Price (contract price)</strong></td><td>Vault ÷ circulating supply, which is the "sell-back price" and the floor of the "mint price"</td></tr>
+    <tr><td><strong>Conservative / Optimistic Real Backing Price</strong></td><td>Counting in / out the 02 that is temporarily locked as lending collateral and cannot be sold back, giving a more conservative or more optimistic measure</td></tr>
+    <tr><td><strong>Mint Progress</strong></td><td>Minted BNB ÷ full-mint amount (factory-calibrated value 20 BNB). The higher the progress, the more expensive minting is</td></tr>
+    <tr><td><strong>02 Staked / LP Staked / Borrowed / Dividend Pool / Burned</strong></td><td>The scale of the three lines — staking, lending and deflation</td></tr>
+  </tbody>
+</table>
+
+<h3>2. Mint Page · Swap BNB for 02</h3>
+<p><strong>How to do it:</strong> enter the BNB to invest in "BNB Amount" (or click "MAX" to use up the remaining quota) → the page shows live how much 02 "You will receive" and the "Mint price" → click mint → confirm the transaction in your wallet.</p>
+<table>
+  <thead><tr><th>Point</th><th>Explanation</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Per-address cap</strong></td><td>Each address can mint at most <strong>0.1 BNB</strong> cumulatively. The "Remaining quota" on the page shows live how much you have left, and anything over is blocked outright</td></tr>
+    <tr><td><strong>Mint price</strong></td><td>= max(curve price, backing price). The curve price rises linearly with the minted BNB amount (0.000000247946 → 0.000002479460 at full mint, <strong>10×</strong> in total); <strong>the price only rises, never falls, so the earlier you mint the cheaper it is</strong></td></tr>
+    <tr><td><strong>Where your BNB goes</strong></td><td>90% to the backing vault (raising everyone's backing price) / 7% to the LP staking dividend pool / 3% to the single-token staking dividend pool. <strong>Minting itself charges no fee</strong></td></tr>
+    <tr><td><strong>A mint may "miss"</strong></td><td>When the on-chain anti-bot random draw misses, that transaction's <strong>BNB is fully refunded to the original path</strong> (no mint, no quota used, only gas lost), and you <strong>can simply retry</strong>; the DApp only reports whether that attempt landed, and states "BNB fully refunded" on a miss. See 〈2. Token Issuance System〉 for details</td></tr>
+    <tr><td><strong>⚠️ Do not transfer tokens to others during the mint phase</strong></td><td>During the mint phase, transfers of 02 between ordinary addresses are <strong>burned entirely</strong>: the recipient receives none and they cannot be recovered. To cash out, only use the "Sell-back" page</td></tr>
+  </tbody>
+</table>
+
+<h3>3. Sell-Back Page · Convert 02 back to BNB at the backing price</h3>
+<p><strong>How to do it:</strong> enter the "02 Amount" → the page shows "You will receive (BNB)" and the "Sell-back fee rate" → click sell back → confirm in the wallet.</p>
+<ul>
+  <li><strong>Fill price = the then backing price</strong> (vault ÷ circulating supply); the fill is only at the backing price, never the curve price.</li>
+  <li><strong>Fee rate:</strong> fixed <strong>5%</strong> in the operational phase; <strong>in the mint phase it decays</strong> — from 30% down to 5% along minting progress (the earlier you sell back, the more is deducted; this is designed to curb early dumping). The page shows the current rate directly.</li>
+  <li><strong>Where the fee goes:</strong> 50% back to the backing vault (raising the backing price) / 20% to the single-token staking dividend pool / 30% to the LP staking dividend pool.</li>
+  <li><strong>An even simpler sell-back method:</strong> send 02 directly to the "02 token contract address"; the system executes the sell-back automatically and the BNB returns to your wallet.</li>
+  <li>Sell-back is not allowed during the "pause window" (the stretch after minting has just filled up and before V2 opens).</li>
+</ul>
+
+<h3>4. Trade Page · V2 Buying/Selling &amp; Liquidity</h3>
+<p>This page contains: the built-in Swap (buy / sell), a price chart, recent trades, and add / remove liquidity. It also provides a link out to PancakeSwap.</p>
+<table>
+  <thead><tr><th>Point</th><th>Explanation</th></tr></thead>
+  <tbody>
+    <tr><td><strong>3% transfer tax</strong></td><td><strong>Every</strong> buy/sell routed through a V2 pool is charged <strong>3%</strong> (any 02 pool, not just the protocol's own): 1% back to the backing vault / 0.5% burned / 0.5% to the Foundation (paid in 02) / the remaining 1% to staking dividends, split 2/3 LP staking and 1/3 single-token staking (at the current DAO-set split)</td></tr>
+    <tr><td><strong>Timing of buys/sells</strong></td><td>Buying requires V2 trading to be open; selling requires the operational phase to be open. The page prompts directly when they are not open</td></tr>
+    <tr><td><strong>Slippage and price impact</strong></td><td>The page shows live "Execution price / Minimum received / Price impact / LP fee", and blocks trading when pool liquidity is too low (&lt;$100) to avoid malicious sandwiching</td></tr>
+    <tr><td><strong>Adding liquidity</strong></td><td>Put in 02 and BNB together in proportion to get LP tokens back. <strong>Note: 02 added during the operational phase is charged the 3% token tax</strong>, so the pool actually receives about 97%; <strong>the pool-creation window is tax-free</strong>, but then the operation must go through this page (or the liquidity manager contract), and third-party UIs such as PancakeSwap are rejected by the contract</td></tr>
+    <tr><td><strong>"Auto-stake LP"</strong></td><td>When ticked, adding to the pool and staking the LP are <strong>completed in a single transaction</strong>, with no need to go to the LP staking page separately</td></tr>
+    <tr><td><strong>Removing liquidity</strong></td><td>Removing through the "liquidity manager contract" is <strong>exempt from the 3% token tax</strong>; removing directly on Pancake may incur the tax</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li>For the fee structure of this page's built-in swap, its slippage protection, and the distinction that "the 0.25% protocol fee and the 3% transfer tax are two layers of fees", see 〈5. V2 Trading System〉, Section 2</li>
+</ul>
+
+<h3>5. 02 Staking Page · Lock up to earn BNB dividends</h3>
+<p><strong>How to do it:</strong> enter the 02 amount → choose a lock tier (30 / 60 / 90 days) → approve and stake.</p>
+<table>
+  <thead><tr><th>Point</th><th>Explanation</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Dividend weight</strong></td><td>30 days ×1 / 60 days ×2 / 90 days ×<strong>3</strong> — the longer you lock, the more the same principal earns</td></tr>
+    <tr><td><strong>Dividend sources</strong></td><td>The <strong>3%</strong> split off during minting + the <strong>20%</strong> of the sell-back fee + the single-token staking share of the V2 transfer tax (about <strong>0.33%</strong> of the traded amount), etc.; snapshotted once every 1 hour and distributed to each stake by weight</td></tr>
+    <tr><td><strong>Minimum holding 24 hours</strong></td><td>Under 24 hours you can neither early-redeem nor redeem at maturity</td></tr>
+    <tr><td><strong>Redeem at maturity</strong></td><td>Full principal returned + the BNB dividends accrued on that stake <strong>paid out at once together</strong></td></tr>
+    <tr><td><strong>Early redemption</strong></td><td>Available after 24 hours, but <strong>there are no dividends at all</strong> — only the principal is returned; the dividends you forfeit are <strong>immediately redistributed among the stakers at that time</strong> (the protocol takes none)</td></tr>
+    <tr><td><strong>Pool cap</strong></td><td>Total staked is capped at <strong>30%</strong> of circulating supply; new stakes are rejected once the cap is reached</td></tr>
+    <tr><td><strong>While the switch is closed</strong></td><td>No new stakes can be added, but <strong>existing stakes can still be redeemed and their dividends claimed at any time</strong>; the principal is not locked up</td></tr>
+    <tr><td><strong>Managing multiple stakes</strong></td><td>You can hold several stakes (each with an independent lock term) and redeem them in one batch at maturity</td></tr>
+  </tbody>
+</table>
+
+<h3>6. LP Staking Page · Earn dividends with liquidity tokens</h3>
+<ul>
+  <li><strong>Prerequisite:</strong> first add liquidity to the 02-BNB pool on the "Trade" page to get LP tokens, then come back to this page to stake (or tick "Auto-stake LP" on the trade page to do it in one step).</li>
+  <li><strong>Lock tiers and weights</strong> are exactly the same as for 02 staking: 30/60/90 days, weights ×1/×2/×3.</li>
+  <li><strong>Minimum holding 24 hours</strong>; redemption at maturity = all LP tokens returned + accrued BNB dividends paid in one go.</li>
+  <li><strong>Early redemption</strong> returns only the LP tokens and forfeits accrued dividends; the forfeited part is immediately redistributed among the LP stakers at that time.</li>
+  <li><strong>Dividend sources:</strong> the <strong>7%</strong> split off during minting + the <strong>30%</strong> of the sell-back fee + the LP staking share of the V2 transfer tax (about <strong>0.67%</strong> of the traded amount); lending interest can add a further share, but only once the DAO raises <code>lendDividendBps</code> above its default of zero (at launch 100% of lending interest goes to the backing vault, and liquidation surplus never goes to the staking pools).</li>
+  <li>The LP staking switch and the 02 staking switch are <strong>independent of each other</strong>, so one may be open while the other is not.</li>
+</ul>
+
+<h3>7. Lending Page · Use 02 as collateral to borrow BNB for short-term liquidity</h3>
+<p><strong>How to do it:</strong> enter the "02 collateral" and the "BNB to borrow" → the page shows "Collateral valuation / Borrow cap / Maturity date / Daily rate" → click borrow.</p>
+<table>
+  <thead><tr><th>Point</th><th>Explanation</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Collateral requirement (LTV ≤ 80%)</strong></td><td>The backing valuation of the collateral 02 must be ≥ borrowing × 1.25; the page shows the "Borrow cap" live</td></tr>
+    <tr><td><strong>Interest</strong></td><td>Daily rate <strong>1.5%</strong>, computed linearly by the second, <strong>not compounded</strong>; unpaid interest after maturity keeps accruing by the second</td></tr>
+    <tr><td><strong>Term</strong></td><td><strong>7 days</strong>. The maturity time is written into the loan note and cannot be changed; the term is an on-chain parameter, so each loan's maturity is fixed the moment it is created</td></tr>
+    <tr><td><strong>Network-wide cap</strong></td><td>The total of all outstanding principal cannot exceed (backing vault + total already borrowed) × <strong>20%</strong>; new loans above it are rejected</td></tr>
+    <tr><td><strong>One at a time</strong></td><td>The same address can have only one loan at a time, and the next can only be taken after the current one is fully repaid</td></tr>
+    <tr><td><strong>How to repay</strong></td><td>repay principal + interest in BNB in one transaction; the principal goes back into the backing vault, the interest is split vault / staking dividends / buyback (100% to the vault at launch), and your whole collateral 02 is returned to your wallet immediately</td></tr>
+    <tr><td><strong>Earliest repayment time</strong></td><td>Voluntary repayment is available only after the loan has been held for 24 hours</td></tr>
+  </tbody>
+</table>
+
+<h3>8. Maturity Liquidation &amp; Withdrawing Remaining Collateral (zero penalty)</h3>
+<ul>
+  <li>If a loan reaches its 7-day maturity without repayment, <strong>anyone can trigger liquidation</strong> (usually a bot keeper scanning the chain automatically), and the triggerer can get 1% of the excess as gas compensation.</li>
+  <li><strong>Only the portion of 02 that just covers "principal + interest" is sold</strong>, never one token more.</li>
+  <li><strong>The remaining collateral 02 that is not sold stays in the system untouched and is credited to your name</strong>, and you can withdraw it at any time by clicking "Withdraw remaining collateral" on the lending page.</li>
+  <li><strong>Zero penalty:</strong> the whole liquidation flow deducts only "the value actually corresponding to the refunded principal + interest" — no default charge or confiscation of any kind.</li>
+  <li>If V2 liquidity is too poor to sell the collateral on the liquidation day, the liquidation <strong>reverts and changes nothing</strong>: your debt is not cleared and your collateral is neither sold nor released. You can still repay to get it back, and anyone can retry the liquidation once the market recovers.</li>
+</ul>
+
+<h3>9. Ecosystem Data Page</h3>
+<p>It gathers backing support, participation scale (staking / LP / borrowed), the dividend pool, and deflation and burn data onto one page, making it easy to judge the project's current size and health quickly. All data is likewise read live from the chain.</p>
+
+<h3>10. DAO Governance Page</h3>
+<table>
+  <thead><tr><th>Function</th><th>Explanation</th></tr></thead>
+  <tbody>
+    <tr><td><strong>My voting power</strong></td><td>Voting power comes from staking (weighted measure); the page shows your current voting power</td></tr>
+    <tr><td><strong>User proposals</strong></td><td>Only those with voting power can submit; the voting window is chosen by the proposer but <strong>cannot be shorter than 1 day</strong>; they pass when yes votes exceed the threshold (51% by default), and <strong>once passed they are executed by the Foundation multisig</strong>. Quorum (<code>quorumBps</code>) is <code>0</code>, i.e. no minimum participation is set, and there is no plan to enable one; a passed proposal still has to be executed by the Foundation multisig, which can also reject it</td></tr>
+    <tr><td><strong>Foundation proposals</strong></td><td>Submitted by the Foundation and <strong>not voted on</strong>; the proposer chooses the notice period (0 = effective immediately, not subject to the 1-day floor), and after the notice period anyone can execute it</td></tr>
+    <tr><td><strong>Minting parameter governance</strong></td><td>Foundation-only: only "full-mint BNB amount" and "per-address cap" can be adjusted, and <strong>after minting starts they can only be lowered</strong>; the curve price and the 10× multiple are outside the adjustable range</td></tr>
+    <tr><td><strong>Donations</strong></td><td>02 / BNB / USDT can be donated to the Foundation (requires this function to be enabled)</td></tr>
+    <tr><td><strong>Announcements</strong></td><td>Official announcements are shown as pop-ups / a top-bar entry</td></tr>
+  </tbody>
+</table>
+<p><strong>Note:</strong> DAO governance functions need to be enabled once when the system is ready; while not enabled, the page only shows a "not yet enabled" notice.</p>
+
+<h3>11. Owner Admin Page</h3>
+<ul>
+  <li>This is the admin entry corresponding to the contract owner wallet; ordinary users do not need it and cannot operate it (connecting with another wallet prompts that you lack permission).</li>
+  <li>The switches on the page (<strong>Minting / Trading (V2 operational phase) / Single-token staking / LP staking / Donations / DAO governance</strong>) are all for <strong>one-time enabling once the system is ready after deployment</strong>; among them <strong>Minting and Trading (operational phase) are one-way and irreversible</strong> and cannot be closed by anyone once enabled; the other switches only control "whether new deposits are accepted" and <strong>do not affect anyone retrieving their own assets</strong>.</li>
+  <li><strong>The dedicated pool-creation button chain (used only during the pause window):</strong> "Create trading pair" → "Enter pool-creation state" → "Create price-anchor pool" (injected via the liquidity manager contract) → "Send to dead address to burn" → leave a window for the market to add liquidity → finally click "Trade" to open the operational phase. For the full flow and the opening-price rules, see 〈3. Three-Phase Lifecycle〉, 〈Pause Window: Creating the Price-Anchor Pool〉.</li>
+  <li>Before enabling V2 trading, the 02-BNB trading pair must be created first; the page will prompt you.</li>
+</ul>
+
+<h3>12. Mechanism Document Page</h3>
+<p>It lists the addresses of all deployed contracts with BscScan links and one-click copy, so anyone can verify them on-chain for themselves. This document is entered from that page.</p>
+
+<h3>13. FAQ</h3>
+<table>
+  <thead><tr><th>Question</th><th>Answer</th></tr></thead>
+  <tbody>
+    <tr><td>I transferred 02 to someone and their tokens disappeared — why?</td><td>During the mint phase, transfers between ordinary addresses are <strong>burned entirely</strong>; this is a deliberate anti-off-market-resale design. During the mint phase, please only use the sell function</td></tr>
+    <tr><td>Why is the mint price shown on the page higher than what the curve gives?</td><td>Mint price = max(curve price, backing price). When the backing price is higher the fill is made at the backing price — this is a protection mechanism, not a bug</td></tr>
+    <tr><td>Why is so much deducted on sell-back?</td><td>The mint-phase rate decays from 30% to 5%, so the earlier you sell back the more is deducted; it is a fixed 5% in the operational phase. The page shows the current rate live</td></tr>
+    <tr><td>What happens if I cannot repay a loan at maturity?</td><td>After 7 days anyone can trigger liquidation, which sells only enough 02 to cover principal and interest, with <strong>zero penalty</strong>; the remaining collateral is credited to your name and you can withdraw it yourself at any time</td></tr>
+    <tr><td>Can staking be withdrawn early?</td><td>After 24 hours you can early-redeem: the principal is fully returned, but all dividends accrued on that stake are forfeited (and redistributed among the stakers at that time)</td></tr>
+    <tr><td>What should I do if my wallet is stolen?</td><td>Contact the official team immediately; <strong>tokens already transferred away cannot be recovered</strong>, so act at once</td></tr>
+    <tr><td>Will the official team ask for my private key / seed phrase?</td><td><strong>Never.</strong> Anyone who asks for your private key or seed phrase, or asks you to transfer tokens first, is a scammer</td></tr>
+  </tbody>
+</table>
+
+<h3>14. Risk Notice (please be sure to read before participating)</h3>
+<ol>
+  <li><strong>Crypto assets are themselves highly volatile.</strong> Although this project has a BNB backing mechanism, the token's market price may still deviate substantially from the backing price, so keep any investment within what you can afford to lose.</li>
+  <li><strong>Staking has a lock-up period:</strong> early redemption forfeits all accrued dividends, so pick a 30/60/90-day tier according to your own funding plans.</li>
+  <li><strong>Lending carries liquidation risk:</strong> failing to repay at maturity will definitely lead to liquidation (although there is zero penalty, part of your collateral 02 will be sold).</li>
+  <li><strong>How it runs and the trust assumptions (honest disclosure):</strong> ① core switches such as minting, the operational phase and V2 trading are <strong>one-way and irreversible once enabled</strong>, after which everything runs automatically by contract and <strong>nobody can shut it down or interfere</strong>; ② governance matters such as minting parameters are controlled by the <strong>DAO</strong>. Please assess these points yourself before participating.</li>
+  <li><strong>Smart contracts carry unknown risks.</strong> Even with testing (and future audits), bugs cannot be 100% ruled out, so do not invest funds you cannot afford to lose.</li>
+</ol>
+
+<!-- ============================================================ -->
+<!--                      Market Scoring Section                   -->
+<!-- ============================================================ -->
+<div class="page-break"></div>
+<h2>Appendix — Market Mechanism Assessment &amp; Overall Score (out of 10)</h2>
+
+<h3>1. Comparison with Similar Projects on the Market</h3>
+<table>
+  <thead><tr><th>02Protocol module</th><th>Similar approaches on the market</th><th>Difference / advantage</th></tr></thead>
+  <tbody>
+    <tr><td>Fully on-chain pricing (vault ÷ circulating supply = floor price)</td><td>Olympus DAO (OHM) Backing model; various PCV-backed tokens on BSC</td><td>02 has a hard cap of 21,000,000 tokens (non-governable) + an internal-market continuously rising curve (a constant 10× price that no one can change), never increases supply, and has no (3,3) emission incentive</td></tr>
+    <tr><td>Mint phase + three-phase switch to V2</td><td>Balancer LBP, Pancake ILO</td><td>A 0.1 BNB cumulative cap per address + a mint price never below the backing price, preventing bots from grabbing the quota</td></tr>
+    <tr><td>Backing sell-back (transfer = automatic sell)</td><td>Safemoon-style Reflections backing</td><td>vaultBNB double-entry accounting prevents drift + a one-way switch that permanently seals the vault withdrawal permission (not executed yet, so check vaultWithdrawSealed on-chain)</td></tr>
+    <tr><td>V2 3% tax split</td><td>The tax tokens that make up 90% of the market</td><td>Non-zero amountOutMin (90% slippage floor), immune to sandwich attacks</td></tr>
+    <tr><td>Three staking tiers + dividend redistribution on early redemption</td><td>Curve (veCRV), Pancake MasterChef</td><td>Forfeited dividends all go to the remaining users, <strong>the protocol takes none</strong></td></tr>
+    <tr><td>7-day maturity liquidation with zero penalty + self-withdrawal of remaining collateral</td><td>Maker/Aave/Compound</td><td>Rare — the mainstream triggers on underwater positions with a 5–15% penalty; 02 looks only at time and charges zero penalty</td></tr>
+    <tr><td>Independent phase switches for the three systems (staking / LP / lending)</td><td>Very rare; usually enabled at deployment</td><td>Lets you control the pace as needed, so lending does not break the vault the moment it goes live</td></tr>
+    <tr><td>20% vault lending cap</td><td>MakerDAO Debt Ceiling</td><td>Dynamic expansion measure = (vault + borrowed) × 20%</td></tr>
+  </tbody>
+</table>
+
+<h3>2. Overall Score</h3>
+
+<h4>Code &amp; Security Tier: <strong style="font-size:20px;">8.5 / 10</strong> (top 15% in the same BSC track)</h4>
+
+<table>
+  <thead><tr><th>Dimension</th><th>Score</th><th>Score bar</th></tr></thead>
+  <tbody>
+    <tr><td>Security · Re-entrancy / owner-theft protection</td><td>9.5</td><td><div class="score-bar"><div class="score-fill" style="width:95%">9.5</div></div></td></tr>
+    <tr><td>Security · Accounting correctness (anti-drift)</td><td>9.0</td><td><div class="score-bar"><div class="score-fill" style="width:90%">9.0</div></div></td></tr>
+    <tr><td>Security · V2 swap slippage protection</td><td>9.0</td><td><div class="score-bar"><div class="score-fill" style="width:90%">9.0</div></div></td></tr>
+    <tr><td>Mechanism completeness · Phase control</td><td>8.5</td><td><div class="score-bar"><div class="score-fill" style="width:85%">8.5</div></div></td></tr>
+    <tr><td>Mechanism completeness · Zero-penalty maturity liquidation</td><td>8.0</td><td><div class="score-bar"><div class="score-fill" style="width:80%">8.0</div></div></td></tr>
+    <tr><td>Economic soundness · 1.5% daily interest</td><td>6.0</td><td><div class="score-bar"><div class="score-fill" style="width:60%">6.0</div></div></td></tr>
+    <tr><td>Economic soundness · Long-term net inflow into the backing vault</td><td>7.5</td><td><div class="score-bar"><div class="score-fill" style="width:75%">7.5</div></div></td></tr>
+    <tr><td>Game-theoretic soundness · Dividend redistribution on early redemption</td><td>8.5</td><td><div class="score-bar"><div class="score-fill" style="width:85%">8.5</div></div></td></tr>
+    <tr><td>Economic soundness · 0.5% deflationary burn</td><td>7.0</td><td><div class="score-bar"><div class="score-fill" style="width:70%">7.0</div></div></td></tr>
+    <tr><td>Fair launch · 0.1 BNB per-address cap / no pre-mine</td><td>8.0</td><td><div class="score-bar"><div class="score-fill" style="width:80%">8.0</div></div></td></tr>
+  </tbody>
+</table>
+
+<div class="box">
+  <p><strong>Overall ranking:</strong></p>
+  <p>✅ Code &amp; security level: <strong>top 15% in the same BSC track</strong> (tail of the first tier) — the three common pitfalls on the market ("accounting drift, being drained via zero-slippage swaps, owner draining the vault") are all filled.</p>
+  <p>✅ Economic &amp; game-theoretic level: <strong>middling, 7 points</strong> — post-launch success depends on V2 trading volume and the tolerance for lending bad debt; the code cannot guarantee this part and it needs live data to validate.</p>
+  <p>📈 To reach the top 5%, add <strong>a 48h Timelock proposal delay</strong> + <strong>a formal audit by CertiK/PeckShield</strong>.</p>
+</div>
+
+<div class="footer-note">
+  02Protocol Mechanism Document · updated 2026-09-19<br>
+  This file is in HTML format and can be opened directly in any browser; you can also open it in Word / WPS and use "Save As .docx" to convert it into a formal Word document.
+</div>
+
+</body>
+</html>

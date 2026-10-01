@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>02Protocol Intro &amp; FAQ</title>
+<style>
+  @page { margin: 18mm 16mm; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    max-width: 800px;
+    margin: 32px auto;
+    padding: 0 20px 48px;
+    color: #000;
+    background: #fff;
+    line-height: 1.68;
+    font-size: 14px;
+  }
+  h1 { font-size: 21px; text-align: center; margin: 0 0 26px; }
+  h2 { font-size: 17px; margin: 26px 0 10px; break-after: avoid; }
+  h3 { font-size: 14.5px; margin: 17px 0 5px; break-after: avoid; }
+  p { margin: 6px 0; }
+  ul { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  .sign { margin-top: 34px; text-align: right; font-size: 13.5px; }
+  .note { margin-top: 22px; padding-top: 10px; border-top: 1px solid #ccc; font-size: 12px; color: #444; }
+</style>
+</head>
+<body>
+
+<h1>02Protocol Intro &amp; FAQ</h1>
+
+<h2>Intro</h2>
+
+<h3>What is 02Protocol?</h3>
+<p>02Protocol is a token protocol deployed on BNB Smart Chain (BSC). The token is named 02Protocol, ticker 02, with 18 decimals and a hard cap of 21,000,000 — a cap written into the code that nobody can raise, not even through governance.</p>
+<p>Its core is a single division: the BNB held in the backing vault divided by the 02 circulating in the market is the backing price of one 02. That price depends on no exchange quote, no third-party price oracle and no manual setting by anyone.</p>
+
+<h3>How is the price of 02 calculated?</h3>
+<p>The price at which the protocol itself is willing to buy 02 back is the backing price at that second: vault BNB ÷ circulating 02. Every node on the chain computes exactly the same number, and anyone can recompute it on-chain to check.</p>
+<p>To be clear: the backing price is the floor of the protocol's own sell-back channel. It does not determine what 02 trades for on the open market — the market price can sit above or below it.</p>
+
+<h3>How is 02Protocol different from the usual "high-yield" project?</h3>
+<p>Many projects advertise "very high APY", but that yield is paid out of tokens they mint themselves — the headline rate measures dilution, not revenue. Such projects also tend to carry bonds that promise buyers an unlock schedule, and every unlock is future sell pressure; meanwhile the treasury mostly holds the project's own token, so when the price falls, the "backing" falls with it.</p>
+<p>02Protocol drops that template: <strong>no bonds, no rebase, no fixed APY of any kind</strong>. Every reward is paid in BNB and comes only from explicit fees and mint allocations; the vault holds BNB and never its own token; and the protocol assumes no "if we all hold together we all win" equilibrium.</p>
+
+<h3>How do I take part in 02Protocol?</h3>
+<p>The protocol offers three routes:</p>
+<ul>
+  <li><strong>Mint</strong>: call the token contract's <code>mint()</code> from the Mint page on this site and receive 02 at the current mint price.</li>
+  <li><strong>Stake</strong>: lock 02 (single-token staking) or 02-BNB LP tokens (LP staking) in the staking contracts and earn BNB dividends based on how long you lock.</li>
+  <li><strong>Lend</strong>: use 02 as collateral and borrow BNB valued at the backing price; or act as a third party and liquidate a borrower who is past due, earning a gas reward.</li>
+</ul>
+<p>There is also one exit route: sell 02 back to the protocol at the backing price and receive BNB.</p>
+
+<h3>Where does my yield come from?</h3>
+<p>Entirely from money the protocol actually receives — nothing is printed out of thin air. Specifically:</p>
+<ul>
+  <li>Of the BNB received when minting, <strong>90% goes to the backing vault, 7% to the LP staking dividend pool and 3% to the single-token staking dividend pool</strong> (this split is hard-coded and not governable).</li>
+  <li>Of the sell-back fee, <strong>30% goes to the LP staking pool and 20% to the single-token staking pool</strong>, while the remaining 50% stays in the vault and thickens the backing price.</li>
+  <li>Stakers' share of the V2 trading tax.</li>
+  <li>The dividend pool's share of lending interest (at launch 100% of interest goes to the vault; the DAO decides the dividend share later).</li>
+</ul>
+<p>Staking rewards are paid in BNB, with no fixed and no promised annual rate — how much is in the pool, how many people split it and at what weight decides what you get.</p>
+
+<h3>Who created 02Protocol? Who runs it?</h3>
+<p>The technical team is a group of anonymous volunteers from around the world. Nothing here asks you to believe anything on the strength of a named founder's reputation, and the token carries no team allocation or developer reserve.</p>
+<p>The protocol has on-chain governance: some parameters can only be adjusted by the DAO, while others are written into the code and cannot be changed even by the DAO. Every rule can be read out of the contracts and recomputed — which is why this document keeps pointing at public state.</p>
+
+<h2>FAQ</h2>
+
+<h3>Is 02 a stablecoin?</h3>
+<p>No. 02 is not pegged to any asset and is not fixed at any price. It is a floating-value token with a real BNB vault supporting its price floor.</p>
+<p>Two ideas worth separating: pegged means the price is roughly a fixed value; backed means there is a floor under the price. 02 is the latter — its backing price only moves up (the one exception is while loans are outstanding, see below), and the market price floats freely above it.</p>
+
+<h3>Are there bonds, rebase or a fixed APY?</h3>
+<p>None of them, and that is a deliberate design choice.</p>
+<p>No bonds: there is no discounted purchase with an unlock schedule, so there is no deferred "future supply looking for an exit". Tokens can only come out of the minting curve.</p>
+<p>No rebase: your token count does not grow just because time passes.</p>
+<p>No fixed APY: the protocol does not print tokens to pay yield, so it cannot and does not promise a rate. What you earn comes entirely from fees and interest that actually flow in.</p>
+
+<h3>How is 02 created? Is there a pre-mine, presale or team allocation?</h3>
+<p>No pre-mine, no presale, no team allocation, no early-investor allocation and no vesting schedule. 02 can come into existence one way only — sending BNB to mint — and the only mint call in the contract sits inside the user mint path.</p>
+<p>The cumulative per-address cap on minting is <strong>0.1 BNB</strong>, and the address that deployed the contracts is under the same limit. Nobody gets an exception.</p>
+
+<h3>How is the mint price set, and why is it cheaper earlier?</h3>
+<p>The mint price runs along a straight line from <strong>0.000000247946 BNB</strong> to <strong>0.000002479460 BNB</strong> — exactly ten times the starting price. No steps, no bands: the price is computed live from "how much BNB the network has minted so far", nobody can tamper with it, and the earlier you take part the cheaper it is.</p>
+<p>The price you actually pay is the higher of the curve price and the current backing price. That means the mint price is <strong>never below the backing price</strong>, which closes off any attempt to sweep the early allocation at an artificially low price.</p>
+<p>Minting itself carries no fee: whatever BNB you send in is converted to 02 at the current mint price and credited in full (90% of it goes to the vault and 7%/3% to the two dividend pools — that is where the money goes, not a fee taken from you).</p>
+
+<h3>What is the 0.1 BNB per-address cap, and what is the "success draw"?</h3>
+<p>0.1 BNB is a <strong>cumulative per-address</strong> cap, not a per-transaction one; once an address reaches it, that address can no longer mint. The design keeps a handful of addresses from eating the cheap early allocation.</p>
+<p>Network-wide minting is capped at <strong>20 BNB</strong> (the contract also carries a hard constant boundary of 500 BNB; 20 BNB is what is actually in use). Once cumulative minting reaches the cap, the mint phase ends automatically and no address can mint more.</p>
+<p>The "success draw" is an anti-bot gate: every mint attempt is decided by an on-chain random draw, and the random success rate is adjusted as issuance progresses. When an attempt loses the draw, the BNB is <strong>refunded in full</strong>, no tokens are minted, and it <strong>does not consume your cap</strong> — you only spend a little gas and can try again straight away.</p>
+<p>The mint switch can only be turned on once; once on, it cannot be turned off.</p>
+
+<h3>Where does the BNB I send go?</h3>
+<p>90% into the backing vault, where it becomes the numerator of the backing price; 7% into the LP staking dividend pool; 3% into the single-token staking dividend pool. Those ratios are hard-coded and not governable.</p>
+<p>The 7% and 3% are pre-filled into the staking pools before staking opens; if a transfer into a pool fails, that share stays in the vault instead of disappearing.</p>
+
+<h3>What is the "backing price", and can I sell back at any time?</h3>
+<p>Backing price = vault BNB ÷ circulating 02. Send 02 to the token contract address, or call the sell function, and the protocol buys it back at the current backing price, <strong>burns 100%</strong> of the tokens, and pays you the matching BNB.</p>
+<p>That channel is open during the mint phase, closed during the pause window in between, and open again in the operational phase. In other words, selling back is switched off during the pause window.</p>
+
+<h3>What is the fee to sell back?</h3>
+<p>The fee is never zero. During the mint phase it declines linearly from 30% to 5% as the raise progresses; after the mint phase it is a flat 5%.</p>
+<p>The fee is split: <strong>50% stays in the backing vault</strong> (it is never withdrawn — it stays there and thickens the backing price), <strong>30% to the LP staking dividend pool</strong> and <strong>20% to the single-token staking dividend pool</strong>.</p>
+<p>This has to be said plainly because it is uncomfortable: since only 90% of mint funds reach the vault and the curve price rises, <strong>the backing price stays below the current curve price throughout the mint phase</strong>. The ratio falls from about <strong>90%</strong> at the start to about <strong>35%</strong> when full; put the other way, the mint price is roughly <strong>1.1× to 2.85×</strong> the protocol's own buy-back price. So selling back during the mint phase returns less than you paid at the curve price, before the fee even applies.</p>
+<p>When the raise is full it looks roughly like this: about 18 BNB in the vault, about 20.637 million 02 circulating, a backing price of about 0.000000872 BNB, and a curve price of 0.000002479460 BNB. (All derived from the deployed constants.)</p>
+
+<h3>How many phases are there, and where are we now?</h3>
+<p>Three: <strong>internal mint phase → pause window → operational phase</strong>.</p>
+<p>Reaching 20 BNB takes the protocol into the pause window automatically. Minting is off, sell-back is off, and user transfers are paused; the only activity allowed is the window that creates the V2 pool.</p>
+<p>The operational phase opens vault sell-back and normal V2 trading. It is entered by a single explicit call from the owner and is <strong>irreversible once opened</strong> — nobody can close it again, so there is no "shut it down so you cannot sell" scenario.</p>
+<p>Current state: minting has not opened; sell-back, V2 trading, staking and lending are all closed as well.</p>
+
+<h3>How is the 3% V2 trading tax split?</h3>
+<p>Buying or selling 02 on PancakeSwap V2 costs a <strong>3%</strong> tax on the trade size, and that total is not governable. Of it, <strong>1% returns to the backing vault</strong> (lifting the backing price for every holder), <strong>0.5% is burned</strong> (deflation) and <strong>0.5% goes to the foundation</strong> (paid in 02, never sold). That 0.5% comes out of the dividend share, so the remaining <strong>1% goes to dividends</strong>, split into roughly <strong>0.67% for LP stakers and 0.33% for single-token stakers</strong>. How the tax splits between vault, burn and dividends is governable (the foundation's leg is currently set by the owner); the 3% total is not.</p>
+<p>The tax is collected in 02 and swapped to BNB once it accumulates to 1,000 tokens; if the swap fails (for example because the pool is too thin at that moment) the tokens are kept and retried on the next trade — they are not discarded.</p>
+<p>Also, during the operational phase a plain wallet-to-wallet transfer is <strong>not taxed at all</strong>.</p>
+
+<h3>How does staking work, and how are dividends calculated?</h3>
+<p>There are two independent pools: single-token staking (stake 02) and LP staking (stake 02-BNB LP tokens). Both pay rewards in <strong>BNB</strong> and neither has a fixed APY.</p>
+<p>Lock terms are 30, 60 or 90 days, with dividend weights of <strong>×1, ×2 and ×3</strong>. The protocol snapshots hourly and splits the BNB that flowed into the dividend pools during that window according to "staked amount × weight" as a share of all active stake.</p>
+<p>One commonly misread point: <strong>a position whose term has matured but which has not been claimed keeps accruing at its weight</strong> — it still holds its share of the dividend denominator, so what it has already earned neither disappears nor is paid out early until you claim it. Restaking is manual; there is no auto-compounding.</p>
+<p>Single-token staking is capped (no more than 30% of circulating supply); LP staking has no cap.</p>
+
+<h3>What happens if I unstake early?</h3>
+<p>Once 24 hours have passed, you can exit early. In that case <strong>you get your principal back and give up all dividends</strong>.</p>
+<p>The forfeited dividends do not go to the protocol — they are <strong>immediately redistributed in full to everyone still staking</strong>, and the protocol keeps nothing. The real cost of an early exit is therefore that you leave this round's distribution, and the share you would have received goes to those who stayed.</p>
+
+<h3>How does lending work, and what happens if a borrower does not repay?</h3>
+<p>The borrower puts 02 into the lending contract as collateral and borrows BNB valued at the <strong>backing price</strong> (not the market price). The default term is 7 days at 1.5% per day (simple interest). Total principal outstanding across the protocol is capped at (vault + outstanding) × <strong>20%</strong>, so the bulk of the vault can never be lent out. Repayment is allowed only after 24 hours.</p>
+<p>On repayment the principal returns to the backing vault, and the interest is split three ways — vault, dividends, buyback — and at launch it is set to <strong>100% to the vault</strong>, because the vault numerator is exactly what lifts the backing price. Your collateral 02 is returned in full the moment you repay.</p>
+<p>If the term elapses without repayment, anyone (usually a bot keeper) can liquidate. The liquidation <strong>sells only the amount of 02 that just covers principal plus interest</strong>, sells it <strong>at the V2 market price</strong>, and enforces a minimum execution price (when the collateral covers the full debt, at least <strong>the principal itself</strong> must come back; when it does not, the floor is 85% of the backing price). If that minimum cannot be met the whole liquidation reverts, so sandwich bots cannot take it. Any 02 left over is credited to your claimable balance — not burned, not shared out — and you can withdraw it whenever you like; claiming clears it to zero.</p>
+<p>The whole path is <strong>penalty-free</strong>: 1% of the market premium goes to the keeper as gas compensation and nothing is charged to the borrower. If the pool is too thin to reach the minimum price, the liquidation simply reverts — the debt is not erased, the collateral is not released, and you can carry on repaying normally.</p>
+
+<h3>Can anyone move the BNB in the backing vault?</h3>
+<p>Vault BNB is an independently accounted number inside the main contract. By design its only legitimate outlets are: user sell-backs, lending principal (capped at 20%, and repayable), and the splits from V2 tax, interest and liquidations. Dividends already attributed to a specific user cannot be touched by anyone.</p>
+<p>At launch a <strong>one-way</strong> vault seal is thrown, permanently closing the temporary withdrawal powers used during deployment — direct withdrawal, timelocked withdrawal and "repoint the lending contract address to withdraw around it" all stop working, and after that the contract itself has no entry point that can take vault BNB out. <strong>That switch has not been thrown yet</strong>, and whether it has can always be checked on-chain by reading <code>vaultWithdrawSealed</code>: only <code>true</code> means it is sealed.</p>
+<p>The contracts are deployed behind a proxy architecture; the implementation address and the on-chain state can be verified directly on BscScan.</p>
+
+<h3>What happens if many people sell back at once?</h3>
+<p>Start with the conclusion: selling back is ordinary redemption — every seller receives BNB at that second's backing price, and there is no "stuck at zero". And, counter-intuitively, <strong>every sell-back pushes the backing price up, not down</strong>.</p>
+<p>The reason is readable in the contract: the 02 you redeem is <strong>100% burned</strong> (supply falls), but what the vault actually pays out is not "one unit's backing price" — <strong>50% of the sell-back fee stays in the vault</strong>, and only the other 50% flows to the two staking pools. Burning one 02 therefore costs the vault only "backing price × (1 − half the fee)", less than one unit's backing price. The denominator drops by one while the numerator drops by less than one, so the quotient must rise.</p>
+<p>An example (operational phase, fee flat at 5%, single redemption): redeeming half the network's 02 lifts the backing price by about <strong>2.5%</strong>; redeeming 90% lifts it by about <strong>22.5%</strong>. During the mint phase the fee is higher (30% declining to 5%) so the lift is larger — about 15% when half is redeemed. (Split into many small redemptions, the cumulative lift is even bigger than in one go.)</p>
+<p>So a wave of sell-backs works out as: <strong>the backing price walks upward, and the last redeemers get the highest unit price.</strong> And every redemption is certain to be paid — the vault's net cost per 02 is always below that unit's backing price, and it holds that BNB to begin with.</p>
+<p>So what does push the backing price down? <strong>Lending</strong>: when principal is lent out the vault's BNB falls while the 02 supply is unchanged (it is restored on repayment). That is the only downward source by design, and it is exactly why the lending cap is (vault + outstanding) × 20%.</p>
+<p>But the BNB lent out does not vanish; it becomes a <strong>claim collateralised by the user's own assets</strong> — the borrower must post 02 worth at least <strong>125%</strong> of the loan (valued at the backing price), so every BNB lent out is backed by 02 of greater value. If a borrower goes 7 days without repaying, anyone (usually a bot keeper) can liquidate: sell the collateral 02 that <strong>just covers principal + interest</strong> <strong>at the V2 market price</strong>, subject to a minimum execution price (at least <strong>the principal itself</strong> when the collateral covers the debt, 85% of the backing price when it does not) — if that cannot be met the whole thing reverts, the debt is not erased and you can still repay normally. The outcome is that <strong>the vault recovers the principal and breaks even</strong>, and <strong>never touches the assets above that</strong>: leftover 02 is fully credited to your claimable balance, withdrawable at any time; and the whole path is <strong>penalty-free</strong>, taking only 1% of the market premium for the keeper's gas.</p>
+<p>So the complete statement is: <strong>the backing price never falls.</strong> While a loan is outstanding the on-chain reading dips briefly (that BNB has left the vault for a while), but it has only turned from "BNB in the vault" into "principal receivable"; no asset is lost, and on repayment principal plus interest return to the vault with the backing price standing higher.</p>
+<p>One boundary worth stating: all of the above is arithmetic required by the contracts, not a market forecast; and the backing price is not the market price, and sell-back is closed during the pause window before the operational phase.</p>
+
+<h3>What can governance change, and what can it not?</h3>
+<p>Changeable: how the V2 tax splits between vault, burn and dividends; how dividends split between the two staking pools; and the dividend pool's share of lending interest (the vault leg of interest is set by the owner).</p>
+<p>Mint parameters (the raise cap and the per-address cap) can only be changed by the DAO, and <strong>once minting has started they can only be lowered</strong>, never raised.</p>
+<p>Not changeable at all: the 21,000,000 hard cap, the two endpoints of the price curve and its 10× multiple, the 90%/7%/3% mint split, the 3% total tax, and the 500 BNB hard boundary.</p>
+<p>On proposals: a user proposal requires voting power to submit, the voting window cannot be shorter than 1 day, and it passes only with more yes than the threshold (51% by default) — <strong>and even then the foundation multisig has to execute it, and the foundation can veto</strong>. Quorum is currently 0, i.e. no minimum participation, and there is no plan to change that — a deliberate decision rather than a to-do, because the real gate is "the multisig must execute".</p>
+<p>Foundation proposals skip voting; the notice period is chosen by the proposer (0 means effective immediately) and anyone may execute once it elapses.</p>
+
+<h3>What risks do I need to know about?</h3>
+<p>First, price risk. The backing price is not the market price; 02 can trade below its backing price, and during the pause window sell-back is closed.</p>
+<p>Second, the mint-phase maths is public: mint at the curve price and sell back at the backing price and there is a clear gap between the two (see the sell-back fee section above). That is not an accident — it is part of the design, written out so that people know before they take part.</p>
+<p>Third, no third-party security audit has been carried out yet. Until one is, this document will not claim any "audited" status.</p>
+<p>Fourth, the referral reward feature is written into the contracts but currently <strong>not enabled</strong>: it neither accrues nor pays out, and it will be announced and its design frozen before it is switched on.</p>
+
+<div class="note">
+<p>Every number in this document is either read directly from the contracts deployed on BSC mainnet, or derived from their constants and marked as approximate. Wherever a description disagrees with the on-chain code, the on-chain code governs. Every parameter can be read and recomputed on BscScan.</p>
+</div>
+
+<p class="sign">02Protocol Technical Team</p>
+
+</body>
+</html>

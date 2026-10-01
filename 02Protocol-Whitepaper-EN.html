@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>02Protocol Whitepaper</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  // Layout: useMaxWidth=true → diagrams fit the body width, so no horizontal scrolling is ever needed;
+  // Node labels are deliberately kept short / wrapped, so the scale factor is basically 1 and the text stays legible (never shrunk).
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: true, htmlLabels: true, nodeSpacing: 55, rankSpacing: 65, curve: 'basis', padding: 12 },
+    themeVariables: { fontSize: '15px' }
+  });
+</script>
+<style>
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    max-width: 1080px;
+    margin: 40px auto;
+    padding: 0 30px 80px;
+    color: #222;
+    line-height: 1.85;
+    font-size: 15px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 30px;
+    border-bottom: 3px double #1e60c9;
+    padding-bottom: 16px;
+    color: #0e3e8c;
+    margin-bottom: 40px;
+  }
+  h2 {
+    font-size: 22px;
+    color: #fff;
+    background: linear-gradient(90deg, #1e60c9 0%, #4a90e2 100%);
+    padding: 10px 18px;
+    border-radius: 6px;
+    margin-top: 56px;
+    box-shadow: 0 2px 6px rgba(30,96,201,.2);
+  }
+  h3 {
+    font-size: 17px;
+    color: #0e3e8c;
+    border-left: 5px solid #1e60c9;
+    padding-left: 12px;
+    margin-top: 30px;
+  }
+  h4 {
+    font-size: 15px;
+    color: #2c5282;
+    margin-top: 24px;
+  }
+  p { margin: 8px 0; }
+  ul, ol { padding-left: 26px; }
+  li { margin: 6px 0; }
+  strong { color: #b91c1c; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 18px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid #c7d2e0;
+    padding: 10px 14px;
+    vertical-align: top;
+  }
+  th {
+    background: #1e60c9;
+    color: #fff;
+    text-align: left;
+    font-weight: 500;
+  }
+  tr:nth-child(even) td { background: #f5f9ff; }
+  .box {
+    border: 1px solid #c7d2e0;
+    background: #f7faff;
+    padding: 16px 22px;
+    border-radius: 8px;
+    margin: 18px 0;
+  }
+  .formula {
+    text-align: center;
+    background: #edf4ff;
+    padding: 16px;
+    border-left: 4px solid #1e60c9;
+    margin: 18px auto;
+    font-weight: bold;
+    color: #0e3e8c;
+    font-size: 16px;
+    letter-spacing: .5px;
+  }
+  .mermaid {
+    text-align: center;
+    margin: 26px auto;
+    padding: 20px;
+    background: #fff;
+    border: 1px dashed #a9bddb;
+    border-radius: 10px;
+    page-break-inside: avoid;
+  }
+  .mermaid svg { line-height: 1.45; }
+  /* Fallback: once mermaid has rendered it marks the element with data-processed, and this rule stops applying;
+     if rendering fails (opened offline / Word opening the HTML / converted to docx), the diagram source is at least
+     shown with its original line breaks, instead of being merged by the browser into one squashed blob of text. */
+  .mermaid:not([data-processed]) {
+    white-space: pre-wrap;
+    text-align: left;
+    font-family: Consolas, Menlo, "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #334155;
+  }
+  .page-break { page-break-before: always; }
+  .footer-note {
+    margin-top: 60px;
+    padding-top: 16px;
+    border-top: 1px solid #c7d2e0;
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+  }
+  .score-bar {
+    height: 18px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 4px 0 14px;
+  }
+  .score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+    color: #fff;
+    font-size: 12px;
+    text-align: right;
+    padding-right: 8px;
+    line-height: 18px;
+  }
+</style>
+</head>
+<body>
+
+<h1>02Protocol Whitepaper</h1>
+
+<div class="box" style="text-align:center;">
+  <p>Release date <strong>September 2026</strong></p>
+  <p>Token <strong>02Protocol</strong> (symbol <strong>02</strong>) · BNB Smart Chain (BSC) · PancakeSwap V2</p>
+  <p>This edition is written against the contracts deployed on BSC mainnet. Every number here is either read from
+  those contracts or derived from their constants and marked as approximate; nothing is projected, promised, or
+  extrapolated as a return.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>0. Our Story</h2>
+
+<p>02Protocol did not start from a blank page. It started from a mechanism that produced a real multiple, and then
+stopped working.</p>
+
+<p>In 2021 the first OlympusDAO fork on BNB Smart Chain launched under the name <strong>Taichi</strong>. It opened
+around $15 and reached about $2,300 on its launch day — a multiple, not a rounding error, and the reason the design is
+worth studying at all. What happened next is what happened to every project built on that template: the mechanism was
+unsustainable. Its incentives only held while the price was rising, and the model had no answer for the moment new money
+stops arriving. That is a property of the template, not a verdict on a particular project or the people who ran it — and
+it is exactly why 02Protocol does not reuse it.</p>
+
+<p>There was no second attempt that year. There were four years spent studying that template instead — the forks that
+followed, and then the second wave in the Chinese market — and writing down the exact point at which each one stopped
+working. The conclusion was not a better bonding curve. The conclusion was that a protocol should stop pretending to
+create yield it does not have, and should instead publish the arithmetic of its own flows — including the parts that are
+uncomfortable.</p>
+
+<p>The one lesson kept from Taichi: a protocol can only be honest about what its code forces it to do. Everything
+downstream of that — the pricing, the vault, the fee paths — is an attempt to express that lesson in Solidity rather
+than in slogans. This document is written against the deployed contracts, and wherever a description and the deployed
+code disagree, the deployed code wins.</p>
+
+<p>Who is behind this: the technical team is a group of <strong>anonymous volunteers distributed around the world</strong>.
+Nothing here asks to be taken on the reputation of a named founder, and the token has no team allocation and no developer
+reserve anywhere in it. That is deliberate — and it is also why this document keeps pointing at public state: every rule
+below can be read off the contracts and recomputed by anyone.</p>
+
+<!-- ============================================================ -->
+<h2>1. Why That Template Stopped Working</h2>
+
+<p>The pattern was remarkably consistent across projects, chains and languages. Four traits account for most of it,
+and each one is a direct target of a design decision in 02Protocol.</p>
+
+<h3>1.1 Public examples</h3>
+
+<table>
+  <tr>
+    <th>Project</th>
+    <th>What it did</th>
+    <th>What happened next</th>
+  </tr>
+  <tr>
+    <td>Wonderland ($TIME)</td>
+    <td>Reserve-currency mechanics with very high staking APY</td>
+    <td>The treasury and its leverage became the story; price fell far below any implied backing</td>
+  </tr>
+  <tr>
+    <td>KlimaDAO</td>
+    <td>Carbon-backed treasury, same rebase-and-bond structure</td>
+    <td>Yield was paid in the protocol's own token; the token's price fell faster than the treasury grew</td>
+  </tr>
+  <tr>
+    <td>Redacted Cartel (BTRFLY)</td>
+    <td>Governance-vote accumulation treasury</td>
+    <td>Structure became too complex to value; the original thesis was diluted away</td>
+  </tr>
+  <tr>
+    <td>TempleDAO</td>
+    <td>Intent-based treasury with a "safe" floor narrative</td>
+    <td>A floor described in one token while exposure lived in another did not hold in a drawdown</td>
+  </tr>
+  <tr>
+    <td>HectorDAO</td>
+    <td>Fork economics, aggressive emissions</td>
+    <td>Emissions outran any real inflow; the treasury could not buy back the supply it had printed</td>
+  </tr>
+  <tr>
+    <td>KLK, Webkey, NVB, Olympus Mine</td>
+    <td>The Chinese-market second wave of the same model</td>
+    <td>The same four traits, compressed into shorter cycles</td>
+  </tr>
+</table>
+
+<h3>1.2 The four traits behind it</h3>
+
+<ol>
+  <li><strong>High APY masked inflation.</strong> Rewards were paid by printing the protocol's own token, not by real
+  revenue. The headline rate measured dilution, not income.</li>
+  <li><strong>Bonds were delayed sell pressure.</strong> A bond buyer acquired tokens at a discount with a vesting
+  schedule. Every vesting event was future supply looking for an exit.</li>
+  <li><strong>Treasuries mostly held their own token.</strong> A balance sheet denominated in the asset it is meant
+  to support cannot support it: when the price falls, the backing falls with it.</li>
+  <li><strong>(3,3) is not an equilibrium.</strong> The cooperative outcome is individually irrational the moment the
+  price starts falling. Selling first is always the better private choice, so it happens, and the equilibrium
+  collapses.</li>
+</ol>
+
+<h3>1.3 What 02Protocol does differently</h3>
+
+<table>
+  <tr>
+    <th>Trait</th>
+    <th>The 02Protocol response</th>
+  </tr>
+  <tr>
+    <td>Yield printed from nothing</td>
+    <td>All rewards are paid in BNB, sourced only from explicit fee and mint allocations: 7% of mint funds and 30% of
+    sell-back fees to LP stakers, 3% of mint funds and 20% of sell-back fees to single-token stakers, plus their share
+    of the 1% dividend portion of the 3% V2 trading tax (that 1% splits into roughly 0.67% to LP stakers and 0.33% to
+    single-token stakers). There is no fixed APY and none is promised.</td>
+  </tr>
+  <tr>
+    <td>Bonds as delayed sell pressure</td>
+    <td>There are no bonds. Tokens are minted only through the curve, and only the user mint path can mint.</td>
+  </tr>
+  <tr>
+    <td>A treasury holding its own token</td>
+    <td>The vault holds BNB only. The protocol's redemption price is <em>vault BNB ÷ circulating 02 supply</em> —
+    it never reads a market price to compute it.</td>
+  </tr>
+  <tr>
+    <td>(3,3) as an equilibrium claim</td>
+    <td>No coordination is assumed. The document states plainly that the backing price only moves one way — up (the sole
+    exception is lending principal leaving the vault, see 4.4) — and that the V2 market price can move in either
+    direction.</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>2. What 02Protocol Is</h2>
+
+<p>02Protocol is a token whose pricing is computed on-chain from a BNB vault and a circulating supply — nothing else.
+There is no oracle in the pricing path. The core relation is a division:</p>
+
+<div class="formula">backing price = vaultBNB ÷ circulatingSupply</div>
+
+<p>That number is the price at which the protocol itself will redeem 02 for BNB. It is a floor for the protocol's own
+redemption path; it does not fix the price at which 02 trades on the open market.</p>
+
+<h3>2.1 A single mint door</h3>
+
+<p>Minting has exactly one public entry point: the token contract's <code>mint()</code> — the function the Mint page of
+this dApp calls. There is no second contract and no second pricing, and that is deliberate: two doors with identical
+semantics would mean every future rule (limits, rationing, per-wallet treatment) has to be implemented twice, and the
+second one is easy to forget. Always mint from this dApp.</p>
+
+<h3>2.2 What 02Protocol is not</h3>
+
+<ul>
+  <li>No bonds. There is no discounted purchase with a vesting schedule.</li>
+  <li>No rebases. Supply does not increase just because time passed.</li>
+  <li>No team allocation. There is no reserved slice and no developer bucket.</li>
+  <li>No vesting and no insider unlock. The only <code>_mint</code> call in the token contract sits inside the user
+  mint path.</li>
+  <li>No private or public sale. Tokens enter circulation by minting against the curve.</li>
+</ul>
+
+<p>The supply ceiling is a constant, not a governance parameter: <strong>MAX_SUPPLY = 21,000,000</strong> tokens with
+18 decimals. It cannot be raised by a vote, by the owner, or by an upgrade in the ordinary governance path.</p>
+
+<!-- ============================================================ -->
+<h2>3. How Mint Works</h2>
+
+<h3>3.1 The price curve is continuous</h3>
+
+<p>The mint price follows a single straight line from <strong>PRICE_MIN = 0.000000247946 BNB</strong> to
+<strong>PRICE_MAX = 0.000002479460 BNB</strong> — exactly ten times the starting price. There are no steps, no tiers
+and no discrete bands:</p>
+
+<div class="formula">curvePrice = PRICE_MIN + (PRICE_MAX − PRICE_MIN) × totalMintedBNB ÷ MINT_BNB_CAP</div>
+
+<p>The effective mint price is the greater of the curve price and the current backing price:</p>
+
+<div class="formula">mint price = max(curvePrice, vaultBNB ÷ circulatingSupply)</div>
+
+<p>Neither price constant has a setter. They are fixed at deployment and there is no function anywhere in the contract
+that can change them.</p>
+
+<h3>3.2 Mint rules</h3>
+
+<ul>
+  <li><strong>No minimum amount.</strong> Any amount greater than zero is accepted.</li>
+  <li><strong>Per-address cumulative cap: 0.1 BNB.</strong> It is cumulative, not per transaction.</li>
+  <li><strong>Anti-bot success draw.</strong> An on-chain draw decides whether each mint lands, and the random
+  success rate is adjusted as issuance progresses. On a miss the BNB is refunded in full and no quota is
+  consumed.</li>
+  <li><strong>Raise cap: 20 BNB.</strong> Minting ends automatically when the cumulative minted BNB reaches
+  <code>MINT_BNB_CAP</code>. A hard ceiling of <strong>MAX_MINT_BNB = 500 BNB</strong> sits above it as a constant
+  bound; the factory raise cap in use is 20 BNB.</li>
+  <li><strong>Minting switches on once.</strong> It can be enabled a single time and cannot be switched off
+  afterwards.</li>
+</ul>
+
+<h3>3.3 Where mint funds go</h3>
+
+<p>The split is hard-coded and not governable: <strong>90% to the vault, 7% to LP-staking dividends and 3% to
+single-token staking dividends.</strong> The 7% and 3% pre-fund the staking pools before staking opens. If a transfer
+to a pool fails, that part stays in the vault instead of being lost.</p>
+
+<h3>3.4 The three phases</h3>
+
+<div class="mermaid">
+flowchart LR
+  M[Mint phase<br/>mint open · redeem at backing] --> S[Suspended<br/>transfers paused · sells closed]
+  S --> P[Pool setup<br/>anchor pool · LP to dead address]
+  P --> O[Operational<br/>sell-back open · normal V2 trading]
+</div>
+
+<p>Mint phase ends when the raise cap is reached. The protocol then enters a <strong>suspended</strong> state in which
+user transfers are paused, vault sell-back is closed, and the only permitted activity is the pool-setup window
+described in section 5. <strong>Operational</strong> phase opens vault sell-back and normal V2 trading and is entered
+by an explicit owner call.</p>
+
+<!-- ============================================================ -->
+<h2>4. The Vault &amp; On-Chain Pricing</h2>
+
+<h3>4.1 Two prices, two formulas</h3>
+
+<p>The mint price and the protocol's redemption price are <em>not</em> the same number, and this is not a rounding
+detail — they are different formulas:</p>
+
+<div class="formula">mint price = max(curvePrice, vaultBNB ÷ circulatingSupply)</div>
+<div class="formula">redeem price = vaultBNB ÷ circulatingSupply</div>
+
+<p>If the supply or the vault is zero, the redeem price function returns PRICE_MIN. Sending 02 to the token contract
+address, or calling <code>sell()</code>, redeems at the backing price. The redeemed tokens are burned in full, always
+100%.</p>
+
+<h3>4.2 Redemption fee</h3>
+
+<p>The fee is never zero. During the mint phase it decreases linearly from <strong>30% to 5%</strong> as the raise
+progresses (<code>FEE_START = 3000</code>, <code>FEE_END = 500</code>). After the mint phase it is a
+<strong>fixed 5%</strong>. The fee itself is split <strong>50% to the vault, 20% to the single-token staking pool and
+30% to the LP staking pool</strong>. The vault's half is not withdrawn — it stays in and thickens the vault.</p>
+
+<h3>4.3 <strong>Honest math disclosure</strong></h3>
+
+<p>Only 90% of mint funds reach the vault, while the curve price that a minter pays rises with every mint. These two
+facts together have a consequence that is worth stating precisely rather than implying it away: during the entire
+mint phase, the backing price stays <em>below</em> the current curve price. The vault is worth less than the sum the
+curve has been charging.</p>
+
+<p>The ratio <code>backing ÷ curvePrice</code>, computed from the deployed constants (raise cap 20 BNB, a 10× curve),
+runs from approximately <strong>90% at the start</strong> down to approximately <strong>35% at the end</strong>. Put
+the other way round, the mint price is roughly <strong>1.1× to 2.85× the protocol's own redemption price</strong>.</p>
+
+<table>
+  <tr>
+    <th>Mint progress</th>
+    <th>backing ÷ curvePrice (approx.)</th>
+    <th>Meaning</th>
+  </tr>
+  <tr><td>0%</td><td>≈ 90%</td><td>Mint price ≈ 1.1× the redemption price</td></tr>
+  <tr><td>28%</td><td>≈ 51%</td><td>Mint price ≈ 2.0× the redemption price</td></tr>
+  <tr><td>50%</td><td>≈ 43%</td><td>Mint price ≈ 2.3× the redemption price</td></tr>
+  <tr><td>100%</td><td>≈ 35%</td><td>Mint price ≈ 2.85× the redemption price</td></tr>
+</table>
+<p style="font-size:13px;color:#64748b;">Table derived from the deployed constants: PRICE_MIN 0.000000247946 BNB,
+PRICE_MAX 0.000002479460 BNB, raise cap 20 BNB, 90% of mint funds to the vault.</p>
+
+<p>At the end of the mint phase the vault holds <strong>approximately 18 BNB</strong> and the supply is
+<strong>approximately 20.64 million</strong> tokens, giving a backing price of approximately
+<strong>0.000000872 BNB</strong> against a curve price of <strong>0.000002479460 BNB</strong>.</p>
+
+<p>So a participant who redeems at the backing price receives less than the curve price they paid, and the redeem fee
+(30% falling to 5%) applies on top of that. The channel that can pay more than the backing price is the
+<strong>V2 market</strong>, whose price is set by the pool and by whoever provides its liquidity — and a market price
+can move in either direction.</p>
+
+<h3>4.4 What actually makes the backing price rise</h3>
+
+<div class="formula">backing price = vaultBNB ÷ circulatingSupply</div>
+
+<p>The numerator grows when new mints arrive (they add 90% of the BNB while the average price paid is climbing), when
+the V2 tax's 1% vault share flows in, when 50% of sell-back fees return to the vault, when the buyback runs, and when
+liquidation principal returns. The denominator can shrink because a redemption burns 100% of the redeemed tokens.</p>
+
+<p><strong>The backing price only moves one way: up.</strong> As long as anyone is using the protocol it is pushed higher —
+minting (the curve price sits above the backing price, so every mint lifts it), every V2 swap (1% to the vault plus a
+0.5% burn), every redemption (100% of the redeemed tokens are burned while half the fee stays in the vault),
+liquidation principal returning, the buyback, and any ecosystem revenue added later.</p>
+
+<p><strong>The one thing that pushes it down is lending principal leaving the vault</strong>: the vault's BNB falls
+while the 02 supply does not move. When the loan is repaid, principal plus interest return to the vault and the backing
+price lands higher than before — which is exactly why borrowing is capped at 20% of (vault + already borrowed), and why
+it has to be repaid.</p>
+
+<p>But the accounting has to be done properly: the BNB that leaves is not gone — it becomes a <strong>receivable
+anchored to the borrower's collateral</strong>. A borrower must post 02 worth at least <strong>125%</strong> of the
+loan (valued at the backing price), so every BNB lent out sits behind more value in 02 than it is worth, on top of the
+20% cap on lending itself. If the borrower does not repay within 7 days, anyone (typically a keeper bot watching the
+chain) can liquidate: the collateral is sold <strong>at the V2 market price</strong>, and only the portion that covers
+principal + interest is sold, with a minimum-proceeds floor (at least the <strong>principal itself</strong> when the
+collateral covers the whole debt; 85% of the backing price when it does not). If the market cannot meet that floor the
+whole liquidation <strong>reverts</strong> — the debt is not cleared, the collateral is not released, and the borrower
+can still repay normally.</p>
+
+<p>The outcome is that <strong>the vault only takes back its principal — it stays whole</strong>, and it
+<strong>never touches the borrower's surplus</strong>: any unsold 02 is credited to the borrower's claimable balance
+and can be withdrawn at any time. There is <strong>no penalty of any kind</strong>; the only thing deducted is 1% of
+the market premium, paid to the keeper as gas compensation.</p>
+
+<p>So the complete statement is: <strong>the backing price never goes down.</strong> While a loan is outstanding the
+on-chain <code>getCurrentPrice()</code> reading dips briefly, because that BNB has temporarily left the vault — but it
+has only changed from "BNB in the vault" into "principal receivable". Nothing is lost on net, and when it comes back,
+principal plus interest return to the vault and the backing price stands higher than before.</p>
+
+<p>It only sits still when there is no volume, no redemption, no ecosystem revenue and no outstanding loan — which in
+practice is close to impossible. And it cannot mathematically reach zero: the backing price is vaultBNB ÷
+circulatingSupply, the vault only shrinks through redemption (which burns the matching supply and pays out less than one
+backing price per token) and through lending (capped at 20%, and repayable), so neither number reaches zero and the
+quotient is always positive. The protocol does not, and cannot, generate BNB on its own.</p>
+
+<!-- ============================================================ -->
+<h2>5. Pool Setup on V2</h2>
+
+<div class="box">
+  <p><strong>There is no liquidity-migration event.</strong> No migration function exists in the deployed contracts,
+  and the protocol never moves vault BNB into a trading pool to fund one.</p>
+</div>
+
+<p>What the contracts actually do is a short, ordered procedure:</p>
+
+<ol>
+  <li>The owner calls <code>setLiquidityOpen(true)</code>. This is an intermediate state: 02 may enter the pair only
+  through the LiquidityManager, and the pair-to-user leg is blocked. Nobody can sell into the pool in this state, and
+  liquidity added here cannot be withdrawn until the operational phase opens.</li>
+  <li>The owner seeds a <strong>price-anchor pool</strong>: a small amount of 02 (the interface default is 10,000 tokens) at
+  a target price equal to the curve price at the final cumulative minted amount × 120%. The BNB side is derived from
+  that ratio.</li>
+  <li>The resulting LP tokens are returned to the caller and then sent to the dead address
+  <code>0x000000000000000000000000000000000000dEaD</code>. That permanently removes any ability to withdraw the
+  pool — there is no "the deployer can pull the liquidity" tail.</li>
+  <li>Market participants add the real depth permissionlessly through
+  <code>LiquidityManager.addLiquidityAndStake()</code>, which adds 02 and BNB and automatically stakes the LP into
+  LPReward.</li>
+  <li>The owner calls <code>openOperationalPhase()</code>, which opens vault sell-back and normal V2 trading.</li>
+</ol>
+
+<p>The anchor pool is deliberately small. It exists to set an opening price reference, not to provide trading depth.
+<strong>Depth has to come from the market.</strong> The protocol does not pretend the anchor pool is a liquidity
+guarantee, and it does not spend the vault to make the pool look deep.</p>
+
+<!-- ============================================================ -->
+<h2>6. Two Ways to Exit</h2>
+
+<p>There are exactly two ways to turn 02 back into value, plus one behaviour that applies before the market exists.</p>
+
+<h3>6.1 The V2 market</h3>
+
+<p>Once the operational phase is open, 02 trades normally on PancakeSwap V2. A swap is subject to a
+<strong>3% tax</strong> (<code>TAX_RATE = 300 bps</code>). The split is: <strong>1% to the vault</strong>
+(<code>vaultRateBps = 100</code>), <strong>0.5% burned</strong> (<code>burnRateBps = 50</code>), <strong>0.5% to the Foundation</strong>
+(paid in 02 and never sold on the market; this slice comes out of the dividend part), and the remaining
+<strong>1% to dividends</strong>, which is divided by <code>v2LpShareBps = 6667</code> into approximately
+<strong>0.67% to LP stakers and 0.33% to single-token stakers</strong>. The vault/burn/dividend split is governable; the
+3% headline rate is not. Tax is collected in 02 and swapped to BNB once the accumulated tax reaches
+<code>SWAP_THRESHOLD = 1,000</code> tokens; if a swap fails the tokens stay and are retried later.</p>
+
+<p>The tax is not limited to the pair this protocol created. <strong>Every 02 pool is taxed</strong>: a pair is
+recognised by its own <code>getReserves()</code> interface, so a parallel 02/BNB pool opened by anyone is taxed on
+both legs exactly like the official one — funding it costs 3%, and taking 02 back out of it costs 3% again. Nobody
+can obtain a tax-free venue by deploying a second pool, and the official pool is not treated specially. The only
+way a pool becomes tax-free is a deliberate, owner-only <code>setIsExcluded(pair, true)</code>, which exists for a
+partner pair whose own token contract charges the tax on its side instead. A venue that does not answer
+<code>getReserves()</code> (a custom or renamed AMM) is not recognised as a pool; in practice a fee-on-transfer
+token such as 02 cannot be listed on one without breaking that venue's own accounting. The scope itself has one
+governor switch, <code>setPoolTaxScope</code>: <code>1</code> narrows the tax back to the pool this protocol
+created, <code>0</code> widens it to every pool again, and <code>2</code> / <code>3</code> freeze whichever scope
+is in force for good — irreversibly, like the vault-withdrawal seal. The protocol's own pool pays its 3% in every
+one of those modes, so no setting of this switch can switch the core tax off.</p>
+
+<h3>6.2 Vault redemption</h3>
+
+<p>Sending 02 to the token contract address, or calling <code>sell()</code>, redeems at the backing price. This is
+allowed during the mint phase and again once the operational phase has opened. Tokens are burned in full, and the
+redeem fee described in section 4.2 applies. The same honest arithmetic applies here: the redemption price is the
+backing price, which during the mint phase sits below the curve price a minter paid.</p>
+
+<h3>6.3 Transfers during the mint phase</h3>
+
+<p>In the mint phase a user-to-user transfer is not rejected — the entire transferred amount is <strong>burned 100%</strong>.
+This is not a tax that goes somewhere; the tokens cease to exist. During the suspended phase, user transfers are paused.
+In the operational phase a plain wallet-to-wallet transfer carries no tax at all.</p>
+
+<!-- ============================================================ -->
+<h2>7. 02 Stake</h2>
+
+<p>Staking has two separate contracts and two separate pools: a single-token pool (<code>RewardDistributor</code>) and
+an LP pool (<code>LPReward</code>). Both pay rewards in BNB. There is no fixed APY and none is promised. Both default
+to disabled and are switched on by the owner.</p>
+
+<h3>7.1 Lock terms and dividend weight</h3>
+
+<table>
+  <tr>
+    <th>Lock term</th>
+    <th>Dividend weight</th>
+    <th>Effect</th>
+  </tr>
+  <tr><td>30 days</td><td>1</td><td>Baseline share of dividends</td></tr>
+  <tr><td>60 days</td><td>2</td><td>Twice the dividend share of a 30-day stake of the same size</td></tr>
+  <tr><td>90 days</td><td>3</td><td>Three times the dividend share of a 30-day stake of the same size</td></tr>
+</table>
+
+<p>This is a <em>weight</em> difference, not a different headline rate. Two stakes of the same size receive dividend
+shares in the ratio 1 : 2 : 3 according to their lock term.</p>
+
+<h3>7.2 Caps and accrual</h3>
+
+<ul>
+  <li>Total single-token stake is capped at <strong>30% of circulating supply</strong>
+  (<code>MAX_STAKE_RATIO = 3000</code>).</li>
+  <li><strong>There is no cap on LP staking.</strong></li>
+  <li>Rewards accrue <strong>hourly</strong> (<code>REWARD_INTERVAL = 1 hour</code>) as
+  <code>amount × weight × accumulatedRewardPerShare</code>.</li>
+  <li>A matured stake keeps accruing until it is redeemed: it keeps its share of the dividend denominator, so what it has already earned is neither lost nor paid out early while it sits unclaimed. Re-staking is a manual action; there is no auto-compounding.</li>
+  <li>Early unstake is allowed only after <strong>24 hours</strong> locked, returns <strong>principal only</strong>,
+  forfeits all pending rewards, and the forfeited rewards are redistributed among the stakers at that time.</li>
+</ul>
+
+<h3>7.3 Where the rewards come from</h3>
+
+<table>
+  <tr>
+    <th>Reward source</th>
+    <th>Single-token pool</th>
+    <th>LP pool</th>
+  </tr>
+  <tr><td>Mint funds</td><td>3%</td><td>7%</td></tr>
+  <tr><td>Sell-back fees</td><td>20%</td><td>30%</td></tr>
+  <tr><td>V2 trading tax</td><td>its share of the 1% dividend part</td><td>its share of the 1% dividend part</td></tr>
+  <tr><td>Lending interest</td><td>only if governance sets <code>lendDividendBps &gt; 0</code> (at launch <code>vaultShareBps = 10000</code>, so the whole interest goes to the vault)</td><td>its share once set</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>8. 02 Bank</h2>
+
+<p>02 Bank is an over-collateralised lending facility inside the protocol. Collateral is 02, valued at the protocol
+backing price — not at a market price.</p>
+
+<table>
+  <tr>
+    <th>Parameter</th>
+    <th>Value</th>
+  </tr>
+  <tr><td>Collateral</td><td>02, valued at the protocol backing price</td></tr>
+  <tr><td>Maximum loan-to-value</td><td>≤ 80% (enforced as <code>valuation × 100 ≥ borrowBNB × 125</code>)</td></tr>
+  <tr><td>Borrowing cap</td><td>20% of (vaultBNB + totalBorrowed)</td></tr>
+  <tr><td>Interest</td><td>1.5% per day, simple, accrued per second (<code>INTEREST_RATE_DAILY = 150 bps</code>)</td></tr>
+  <tr><td>Default term</td><td>7 days</td></tr>
+  <tr><td>Minimum borrow time</td><td>1 day</td></tr>
+</table>
+
+<p>After the deadline, liquidation can be triggered by anyone. The liquidation sells <strong>just enough</strong> 02
+on PancakeSwap V2 to cover principal plus interest, rounded up. The slippage floor is <strong>the principal itself</strong>
+whenever the collateral covers the whole debt, so a liquidation that succeeds can never leave the vault short; the flat
+85%-of-the-backing-price floor applies only when the collateral cannot cover the debt. If the sale cannot clear its floor
+at all — a pool with no depth — the whole call <strong>reverts</strong>: the debt is not cleared and the collateral is not
+released, so a borrower can never walk away with a free loan. Any unsold collateral is written to
+<code>pendingCollateral</code> for the borrower to claim later.</p>
+
+<p>Proceeds are allocated as follows: principal returns to the vault, while the interest and any surplus are split
+three ways — the backing vault, the staking dividend pools, and the buyback — and a <strong>1% keeper fee</strong> is paid.
+At launch <code>vaultShareBps = 10000</code>, so <strong>100% of the interest deepens the vault</strong>: the vault raises the
+backing price from the first block and needs no V2 depth, whereas the buyback has to buy 02 at a market price above
+the backing price and cannot execute while the anchor pool holds only a small amount of 02. The owner moves the split later,
+and the dividend part it releases then splits by <code>lpShareBps = 6667</code>. Lending defaults to disabled.</p>
+
+<!-- ============================================================ -->
+<h2>9. Tokenomics</h2>
+
+<h3>9.1 Supply</h3>
+
+<table>
+  <tr>
+    <th>Property</th>
+    <th>Value</th>
+  </tr>
+  <tr><td>Name / symbol</td><td>02Protocol / 02</td></tr>
+  <tr><td>Decimals</td><td>18</td></tr>
+  <tr><td>Hard supply ceiling</td><td>21,000,000 (constant, not governable)</td></tr>
+  <tr><td>Team allocation</td><td>none</td></tr>
+  <tr><td>Reserve / vesting / sale</td><td>none — the only mint path is the user mint</td></tr>
+  <tr><td>Hard raise ceiling</td><td>MAX_MINT_BNB = 500 BNB (constant)</td></tr>
+  <tr><td>Factory raise cap in use</td><td>MINT_BNB_CAP = 20 BNB</td></tr>
+  <tr><td>Per-address cumulative cap</td><td>0.1 BNB</td></tr>
+</table>
+
+<p>After minting has started, the Foundation may only <em>lower</em> the raise cap and the per-address cap. The worst
+case therefore shrinks, and the supply ceiling cannot be breached.</p>
+
+<h3>9.2 Fund flow</h3>
+
+<div class="mermaid">
+flowchart TD
+  U[User mints with BNB] --> D{anti-bot draw}
+  D -- miss --> R[BNB refunded in full]
+  D -- success --> S[Split]
+  S -- 90% --> V[Vault]
+  S -- 7% --> LP[LP staking pool]
+  S -- 3% --> SP[Single-token pool]
+  T[V2 swap: 3% tax] --> C[1% vault · 0.5% burn · 0.5% Foundation · 1% dividends]
+</div>
+
+<pre style="background:#f5f9ff;border:1px solid #c7d2e0;border-radius:8px;padding:16px;font-size:13px;line-height:1.6;overflow-x:auto;">
+  MINT (BNB) ---------------- anti-bot success draw
+     |                                  |  miss -> full refund
+     |
+     +-- 90% ------------------------> VAULT  (backing price numerator)
+     +--  7% ------------------------> LP staking rewards pool
+     +--  3% ------------------------> Single-token staking rewards pool
+
+  SELL-BACK FEE (30% -> 5%, then fixed 5% of the redeemed value)
+     +-- 50% ------------------------> VAULT
+     +-- 20% ------------------------> Single-token staking rewards pool
+     +-- 30% ------------------------> LP staking rewards pool
+
+  V2 SWAP TAX (3% of the swap, collected in 02, swapped to BNB at 1,000 tokens)
+     +--  1% ------------------------> VAULT
+     +--  0.5% ----------------------> BURN
+     +--  0.5% ----------------------> FOUNDATION (paid in 02, taken out of the dividend part)
+     +--  1.0% ----------------------> DIVIDENDS
+             +-- ~0.67% (2/3) ------> LP stakers
+             +-- ~0.33% (1/3) ------> Single-token stakers
+</pre>
+
+<h3>9.3 Buyback</h3>
+
+<p>The token contract keeps a separate buyback pot (<code>buybackPool</code>), filled through <code>addBuyback()</code> —
+which receives whatever share of lending interest the split routes to it, and at launch that share is zero. With
+<code>buybackModeBurn = true</code>, the default, <code>buybackAndBurn()</code> buys 02 on PancakeSwap V2 and burns it,
+which is an explicit call rather than an automatic step, because the fill it gets depends entirely on the depth of
+the pool at that moment. If the mode is set to false the BNB is sent to <code>buybackSink</code> instead. The buyback
+pot is accounted separately from <code>vaultBNB</code>.</p>
+
+<h3>9.4 TwoSwap</h3>
+
+<p>TwoSwap is an optional built-in swap helper. Its fee ceiling is 50 bps and its default is
+<code>feeBps = 25</code>, i.e. <strong>0.25%</strong>. It is disabled by default. This is a separate fee, charged in
+addition to the 3% transfer tax — not instead of it.</p>
+
+<!-- ============================================================ -->
+<h2>10. What Makes the Backing Price Rise</h2>
+
+<p>The backing price is <code>vaultBNB ÷ circulatingSupply</code>. Two things can move it: the numerator can grow, and
+the denominator can shrink.</p>
+
+<table>
+  <tr>
+    <th>Driver</th>
+    <th>Effect on vault BNB</th>
+    <th>Depends on</th>
+  </tr>
+  <tr>
+    <td>New mints (90% of funds)</td>
+    <td>Adds BNB to the vault while the average price paid is climbing</td>
+    <td>New capital entering the mint</td>
+  </tr>
+  <tr>
+    <td>V2 tax, vault share (1%)</td>
+    <td>Adds BNB continuously as swaps happen</td>
+    <td>Trading volume</td>
+  </tr>
+  <tr>
+    <td>Sell-back fees (50% of the fee to the vault)</td>
+    <td>Adds BNB, and keeps the other half in place</td>
+    <td>Redemption activity</td>
+  </tr>
+  <tr>
+    <td>Buyback</td>
+    <td>Buys and burns 02 by default, reducing supply</td>
+    <td>Buyback pot funding</td>
+  </tr>
+  <tr>
+    <td>Liquidation principal</td>
+    <td>Returns borrowed BNB to the vault</td>
+    <td>Lending activity</td>
+  </tr>
+  <tr>
+    <td>Redemption (burn)</td>
+    <td>Reduces circulating supply</td>
+    <td>Holders choosing to exit</td>
+  </tr>
+</table>
+
+<p>Every row above depends on activity: with nobody acting, the backing price does not move. But as long as anyone is
+acting it only goes up — <strong>the sole downward pressure is lending principal leaving the vault</strong> (see 4.4).
+The tax-driven portion additionally depends on volume.</p>
+
+<!-- ============================================================ -->
+<h2>11. Exit Economics</h2>
+
+<p>There is no table here showing which mint timing is profitable, because the protocol cannot know that and will not
+claim it. What it can do is state what each exit channel pays.</p>
+
+<table>
+  <tr>
+    <th>Exit channel</th>
+    <th>What it pays</th>
+    <th>Costs</th>
+  </tr>
+  <tr>
+    <td>V2 market</td>
+    <td>Whatever the pool price is at the moment of sale — it can be above or below the backing price</td>
+    <td>3% V2 swap tax</td>
+  </tr>
+  <tr>
+    <td>Vault redemption</td>
+    <td>The backing price: <code>vaultBNB ÷ circulatingSupply</code></td>
+    <td>Redeem fee 30% → 5% during mint, then fixed 5%</td>
+  </tr>
+</table>
+
+<p>And the uncomfortable part, restated because it belongs in this section and not only in a footnote: during the mint
+phase the backing price is always below the curve price, with the ratio falling from approximately 90% to
+approximately 35%. A minter who exits through vault redemption during the mint phase therefore redeems below the price
+they paid, before the fee. The V2 market is the only channel that can pay more than the backing price, and only if
+someone is willing to buy there.</p>
+
+<p>This is a description of the deployed arithmetic. It is not a prediction, and it is not advice.</p>
+
+<!-- ============================================================ -->
+<h2>12. Why the Protocol's Floor Cannot Reach Zero</h2>
+
+<p>The claim here is narrow and mathematical, and it is about the protocol's own redemption price, not about the market
+price of 02.</p>
+
+<p>The redeem price is <code>vaultBNB × 1e18 ÷ circulatingSupply</code>. As long as the vault holds any BNB and the
+circulating supply is non-zero, this quantity is strictly greater than zero. The vault is funded by 90% of mint
+funds, 50% of sell-back fees, 1% of every V2 swap and liquidation principal; redemptions themselves burn 100% of the
+tokens they redeem and the vault keeps half of the fee, so a redemption shrinks the numerator and the denominator
+together — and the net effect on this price is upwards, never downwards. The pricing function has no path that returns
+zero while those conditions hold.</p>
+
+<p>The permanent seal, once thrown, reinforces this at the contract level — and it has not been thrown yet (see
+section 14). Until it is thrown, the owner can withdraw vault BNB at any moment through a single
+<code>ownerWithdrawVault</code> call, with no notice period.
+<code>sealVaultWithdraw()</code> is a <strong>one-way, irreversible</strong> switch: once it is called,
+<code>ownerWithdrawVault</code> reverts
+forever, for everyone including the permission wallet, and <code>setLendingContract</code> is permanently locked as
+well, since the lending contract was the one remaining path that could pull from the vault. The seal requires the
+lending contract to be configured first. <code>emergencyWithdrawBNB</code> can only ever take BNB held
+<em>above</em> <code>vaultBNB</code>, never the vault itself.</p>
+
+<p>Outside the vault, the "rescue" functions are deliberately fenced in. <code>ownerRescueToken</code> on the token
+contract refuses to move 02 itself; the two staking contracts refuse to move the token they hold on behalf of stakers
+(02 in single-token staking, the LP token in LP staking); the lending contract's <code>emergencyWithdrawTokens</code>
+refuses the collateral token; and <code>ownerRescueBNB</code> on each staking contract pays out only the BNB held
+<em>above</em> the pools it owes stakers (<code>rewardPool + claimableReserve</code>, respectively
+<code>lpRewardPool + lpClaimableReserve</code>). The deployment-only upgrade hooks <code>initV9</code> /
+<code>initV10</code> / <code>initV11</code> are owner-only, so no third party can overwrite mint parameters the DAO has
+already set.</p>
+
+<div class="box">
+  <p><strong>This guarantee is about the protocol's redemption price only.</strong> It does not mean the market price
+  cannot fall, and it does not mean a holder can always obtain the backing price. It means the protocol's own pricing
+  function has no zero outcome while the vault and supply are non-zero.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>13. The Flywheel</h2>
+
+<div class="mermaid">
+flowchart LR
+  A[Mint: 90% to vault] --> B[Backing price rises]
+  B --> C[Redemption floor]
+  C --> D[V2 market demand]
+  D --> E[3% tax: vault, burn, dividends]
+  E --> B
+</div>
+
+<p>Read the loop as a description of flows, not as a guarantee that it spins. Minting adds 90% of the proceeds to the
+vault, which raises the backing price. The backing price is the price at which the protocol redeems, which is one
+input to whether holders choose to hold or sell. Trading generates the 3% tax, whose 1% vault share and 0.5% burn feed
+back into the numerator and the denominator. Dividends paid in BNB to stakers are funded by the same flows.</p>
+
+<p>Every arrow depends on someone choosing to act, and on someone providing liquidity for the V2 leg. With nobody
+acting, the flywheel does not turn; but once it turns, the backing price only moves up.</p>
+
+<!-- ============================================================ -->
+<h2>14. Roadmap</h2>
+
+<table>
+  <tr>
+    <th>Item</th>
+    <th>Status</th>
+  </tr>
+  <tr><td>Contracts deployed on BSC mainnet</td><td>Complete</td></tr>
+  <tr><td>On-chain self-check comparing implementation addresses against the deployment record</td><td>Complete</td></tr>
+  <tr><td>Mint phase</td><td>Not started</td></tr>
+  <tr><td>Third-party security audit</td><td>Not performed — pending</td></tr>
+  <tr><td>Vault sealing (<code>sealVaultWithdraw()</code>)</td><td>Pending</td></tr>
+  <tr><td>Migrating ownership to a Gnosis Safe with a community / threshold layout</td><td>Pending</td></tr>
+  <tr><td>Staking activation (single-token and LP pools)</td><td>Pending</td></tr>
+  <tr><td>Lending activation (02 Bank)</td><td>Pending</td></tr>
+  <tr><td>Governance activation (<code>governanceEnabled</code>)</td><td>Pending</td></tr>
+</table>
+
+<p>There is no testnet in the public product. No dates are promised for any pending item. The audit line stays in this
+table as pending until an audit is actually completed — this document does not treat an audit as done.</p>
+
+<!-- ============================================================ -->
+<h2>15. Governance</h2>
+
+<p>Governance is split between <code>TwoDAO</code> (proposals) and <code>TwoFoundation</code> (the permission set).
+<code>governanceEnabled</code> defaults to false and is switched on once.</p>
+
+<table>
+  <tr>
+    <th>Parameter</th>
+    <th>Value</th>
+  </tr>
+  <tr><td>Right to propose</td><td>Voting power &gt; 0, which requires a 90-day-locked single-token or LP stake</td></tr>
+  <tr><td>Voting weight, single-token</td><td>1 staked 02 = 1 vote</td></tr>
+  <tr><td>Voting weight, LP</td><td>An LP stake counts as 2× its 02 content</td></tr>
+  <tr><td>Notice / voting window</td><td>User proposals: chosen by the proposer, at least <code>MIN_USER_WINDOW = 1 day</code> and at most <code>MAX_NOTICE_PERIOD = 30 days</code>; a Foundation proposal may use 0 (effective immediately). The interface default is 3 days</td></tr>
+  <tr><td>Pass threshold</td><td><code>passBps = 5100</code> → 51%</td></tr>
+  <tr><td>Quorum</td><td><code>quorumBps = 0</code> → quorum is disabled: there is no minimum participation, so a single address with voting power can satisfy "more than half of the votes cast" (the proposal still has to be executed by the Foundation multisig). <strong>This is a deliberate decision, not a pending item: the real gate is that a passed proposal still has to be executed by the Foundation multisig, which can also reject it</strong></td></tr>
+  <tr><td>Execution</td><td>After <code>voteEnd</code>. Foundation proposals may be executed by anyone; a user proposal must be executed by the Foundation multisig, which can veto it.</td></tr>
+  <tr><td>Multisig</td><td><code>TwoFoundation</code> implements M-of-N with <code>MAX_REQUIRED = 9</code>. Signers and the threshold can be changed on-chain without redeploying.</td></tr>
+  <tr><td>Referral rewards</td><td>Built into the contracts (a referrer earns 02 on the referee's staked amount, <code>referralBps</code> ≤ 5000), but <code>governanceEnabled = false</code>: <strong>nothing accrues and nothing is paid out today</strong>. It will be announced before it is switched on, and its design is fixed first.</td></tr>
+</table>
+
+<h3>15.1 Locked and changeable</h3>
+
+<table>
+  <tr>
+    <th>Locked forever (no setter exists)</th>
+    <th>Changeable</th>
+  </tr>
+  <tr>
+    <td>
+      Price curve constants (PRICE_MIN, PRICE_MAX)<br>
+      MAX_SUPPLY = 21,000,000<br>
+      MAX_MINT_BNB = 500<br>
+      Mint-phase split 90 / 7 / 3<br>
+      TAX_RATE = 3%
+    </td>
+    <td>
+      V2 vault / burn split<br>
+      Dividend splits<br>
+      TwoSwap fee switch and rate (within the 0.5% cap)<br>
+      lendDividendBps<br>
+      Raise cap and per-address cap — Foundation only, and only downwards once minting has started
+    </td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>16. Relationship to 01 Protocol</h2>
+
+<p>02Protocol and 01 Protocol share a name pattern and a conviction about on-chain pricing, but the pricing machinery
+is different, and one row of the table below needs stating plainly.</p>
+
+<table>
+  <tr>
+    <th>Dimension</th>
+    <th>01 Protocol</th>
+    <th>02Protocol</th>
+  </tr>
+  <tr>
+    <td>Chain</td><td>Ethereum</td><td>BNB Chain (BSC)</td>
+  </tr>
+  <tr>
+    <td>Launch model</td>
+    <td>Fair launch through a bonding curve</td>
+    <td>Fair minting through a public bonding curve; no team allocation, no vesting, no reserve</td>
+  </tr>
+  <tr>
+    <td>Backing asset</td>
+    <td>Reserves held in yield-bearing sUSDS</td>
+    <td>The vault holds BNB. It is not used as trading capital and is not a source of trading depth</td>
+  </tr>
+  <tr>
+    <td>Supply</td>
+    <td>Fixed supply issued along the bonding curve</td>
+    <td>Hard ceiling of 21,000,000; no inflation-based incentives</td>
+  </tr>
+  <tr>
+    <td>Pricing model</td>
+    <td>Exponential bonding curve</td>
+    <td>Mint price follows a rising linear curve; the protocol redemption price is the backing price</td>
+  </tr>
+  <tr>
+    <td>Price consistency</td>
+    <td>Curve price and market price can differ</td>
+    <td>The two protocol prices are <strong>not the same number</strong>: the mint price is <code>max(curvePrice, backing)</code> while the redemption price is only the backing price. During the mint phase the mint price sits above the redemption price.</td>
+  </tr>
+  <tr>
+    <td>Floor behaviour</td>
+    <td>Elastic — it can rise with yield and fall with redemptions</td>
+    <td>The backing price is <code>vaultBNB ÷ circulatingSupply</code>. A redemption burns supply and returns part of its fee to the vault, so it does not pull this price down. This says nothing about the V2 market price.</td>
+  </tr>
+  <tr>
+    <td>Reward source</td>
+    <td>Yield earned by the reserve asset</td>
+    <td>BNB paid from real fees and from part of the mint funds; no token printing</td>
+  </tr>
+  <tr>
+    <td>Governance</td>
+    <td>Progressive decentralisation</td>
+    <td>Multisig plus progressive community governance; governance is not enabled yet</td>
+  </tr>
+</table>
+
+<p>01 and 02 do not price mint and exit at the same number. 02's mint price and its redemption price are different
+numbers for the whole mint phase, and sections 4 and 11 explain the gap rather than hide it.</p>
+
+<!-- ============================================================ -->
+<h2>17. Risks &amp; Disclosures</h2>
+
+<p>This section exists because the mechanisms above have costs, and a document that hides them is not useful.</p>
+
+<h3>17.1 The mint premium</h3>
+
+<p>During the mint phase the backing price is always below the curve price — the ratio runs from approximately 90%
+down to approximately 35%, meaning the mint price is roughly 1.1× to 2.85× the protocol's own redemption price
+(section 4.3). A holder who exits through vault redemption during the mint phase realises less than they paid, before
+the redeem fee.</p>
+
+<h3>17.2 The redeem fee</h3>
+
+<p>Redemption is never free. It starts at 30% and falls linearly to 5% across the mint, then stays at a fixed 5%
+afterwards. Fees are deducted from the amount redeemed.</p>
+
+<h3>17.3 Anchor pool versus real liquidity</h3>
+
+<p>The pool the protocol seeds is a minimal price anchor, not a source of depth. Real trading depth must be provided
+by the market through the LiquidityManager. A thin pool means high slippage, and the protocol does not stand behind
+the pool with vault BNB. The interface additionally blocks trades when the estimated pool depth is below $100, but
+that is a front-end guard only — there is no depth threshold in the contracts, and a direct contract call can bypass
+it.</p>
+
+<h3>17.4 Smart-contract risk</h3>
+
+<p>Code can contain defects that neither this document nor the deployment process has found.</p>
+
+<h3>17.5 Governance setup</h3>
+
+<p>Governance (<code>governanceEnabled</code>) is not yet switched on. Quorum is disabled, and the Foundation can veto a
+user proposal by declining to execute it.</p>
+
+<h3>17.6 No audit yet</h3>
+
+<p>A third-party security audit has <strong>not</strong> been performed. This document does not claim otherwise. The
+audit is listed as pending in the roadmap.</p>
+
+<h3>17.7 Market and liquidity risk</h3>
+
+<p>The V2 market price of 02 can move in either direction and is set by the pool and its liquidity providers. The
+backing price is a floor for the protocol's own redemption path only; it is not a floor under the market price, and it
+does not obligate anyone to buy at that level.</p>
+
+<h3>17.8 This is an experiment, not investment advice</h3>
+
+<p>02Protocol is an experiment in on-chain, reserve-backed pricing. Nothing in this document is investment advice, a
+recommendation, or a promise of any outcome. Read the contracts, verify the addresses, and size any exposure
+accordingly.</p>
+
+<!-- ============================================================ -->
+<h2>18. Final Words</h2>
+
+<p>There is a roadmap in section 14, and it lists work that is still pending, including an audit that has not
+happened.</p>
+
+<p>What survives is the one idea the project started with — that code sets the rules, and that the honest thing to do
+is publish what the code actually does even when the arithmetic is unflattering. The 90/7/3 split, the 30% → 5%
+redeem fee, the ratio falling from 90% to 35%, the unaudited implementation: all of it is written
+down here because a participant who understands these facts is making a real decision, and a participant who does not
+is making a guess.</p>
+
+<p>02Protocol does not promise that the price rises. It promises that the rules are visible, that the pricing comes
+from a division anyone can recompute from public state, and that where a description and the deployed code disagree,
+this document follows the code.</p>
+
+<div class="footer-note">
+  02Protocol Whitepaper · September 2026 · This document describes deployed smart contracts on BNB Smart Chain.
+  It contains no audit claim and no promise of profit. No third-party audit has been performed.
+  Nothing here is investment advice. Verify contract addresses independently before interacting.
+</div>
+
+</body>
+</html>
