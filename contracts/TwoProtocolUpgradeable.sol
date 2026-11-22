@@ -60,6 +60,13 @@ interface ITwoPairLike {
     function getReserves() external view returns (uint112, uint112, uint32);
 }
 
+/// V17/V19: the mining side of the protocol. Pinged on EVERY 02 transfer so that real usage records the
+/// day's 02 price and settles the release queue by itself; kept as a one-function interface so the token
+/// stays decoupled from BurnMine.
+interface ITradeHook {
+    function pokeDayPrice() external;
+}
+
 /// @title TwoProtocolUpgradeable
 /// @notice UUPS-upgradeable variant of TwoProtocol. Deployed behind an ERC1967 proxy on mainnet so
 ///         the address stays fixed while the implementation can be upgraded locally (deploy a new
@@ -226,6 +233,12 @@ contract TwoProtocolUpgradeable is
     // gate itself, which is why `_isTaxedPoolSide` tests `poolTaxScope & 1`.
     uint8 public poolTaxScope;
 
+    // V17/V19 (append-only): transfer-time hook. EVERY transfer pings `tradeHook` (BurnMine) before its
+    // tax legs, so ordinary usage records the day's price and settles the release queue — no keeper is
+    // needed for either. The call is gas-capped and its failure is ignored: it can never block, tax or
+    // change a transfer. Zero (the default) means the hook is off.
+    address public tradeHook;
+
     /* ============ Events ============ */
     event Minted(address indexed user, uint256 bnbAmount, uint256 tokenAmount, uint256 price);
     event MintFailed(address indexed user, uint256 bnbAmount, uint256 nonce);
@@ -252,7 +265,7 @@ contract TwoProtocolUpgradeable is
         inSwap = false;
     }
     modifier lockSwap() {
-        require(!inSwap, "Swap in progress");
+        require(!inSwap, "In swap");
         _;
     }
 
@@ -659,7 +672,8 @@ contract TwoProtocolUpgradeable is
     }
 
     function _transfer(address from, address to, uint256 amount) internal virtual override {
-        require(from != address(0) && to != address(0), "ERC20: zero address");
+        // Zero-address checks are already performed by ERC20Upgradeable._transfer (OZ 4.9), which every
+        // path below ends in — repeating them here only spent bytes at the EIP-170 limit.
         // V12 emergency freeze: a frozen address has its tokens fully locked (both outgoing and incoming are blocked).
         // The gate is placed first so it covers sell-back (to == address(this)), V2 buys/sells, plain transfers and the mint-phase burn branch.
         require(!frozen[from] && !frozen[to], "Frozen");
@@ -669,6 +683,14 @@ contract TwoProtocolUpgradeable is
             super._transfer(from, to, amount);
             return;
         }
+
+        // V19: EVERY transfer pings the mining side, not only V2 buys/sells, so release settlement
+        // keeps pace with real usage (see BurnMine.processOrders). It runs before the tax legs on
+        // purpose: EIP-150 forwards only 63/64 of the gas left, so a poke made last would be starved
+        // by exactly the 1/64 a wallet's own gas estimate does not add. Placed after the `inSwap`
+        // guard, so the token's own tax swap never re-enters. BurnMine's own transfers are skipped:
+        // it is the hook, and paying to walk its queue again from inside claim/mine buys nothing.
+        if (msg.sender != tradeHook) _notifyTradeHook();
 
         if (to == address(this)) {
             require(isMintPhase || vaultSellOpen, "Sell closed");
@@ -691,8 +713,8 @@ contract TwoProtocolUpgradeable is
         // The pair->user leg stays blocked, which locks buying AND makes LP added in this
         // state non-removable until the operational phase opens.
         if (liquidityOpen && (to == pairAddress || from == pairAddress)) {
-            require(from != pairAddress, "Buying locked until trading open");
-            require(from == liquidityManager, "Only via liquidity manager");
+            require(from != pairAddress, "Locked");
+            require(from == liquidityManager, "LM only");
             super._transfer(from, to, amount);
             return;
         }
@@ -726,6 +748,19 @@ contract TwoProtocolUpgradeable is
         }
 
         super._transfer(from, to, amount);
+    }
+
+    /// V17/V19: ping the mining side so a transfer records the day's price and settles the release
+    /// queue. Best-effort on purpose: the call is gas-capped and its result (success or revert) is
+    /// ignored, so a broken, paused or malicious hook can never block a transfer or revert the pair.
+    function _notifyTradeHook() private {
+        address h = tradeHook;
+        if (h != address(0)) {
+            // 500k covers BurnMine's ~90k day-price write plus one gas-bounded slice of the order queue
+            // (200k); a 100k cap clipped the first write of a day, and a 250k cap clipped the queue
+            // walk. Unused gas is returned to the transfer.
+            h.call{gas: 500_000}(abi.encodeWithSelector(ITradeHook.pokeDayPrice.selector));
+        }
     }
 
     /// @param price the backing price captured BEFORE the caller burned, so this path prices
@@ -994,6 +1029,18 @@ contract TwoProtocolUpgradeable is
         vaultBNB += msg.value;
     }
 
+    /* ============ Burn mine ============ */
+    /// Credits the BNB attached to this call to `vaultBNB`, so a module that builds no token sale of
+    /// its own (the burn mine) can still raise the floor for real. Deliberately permissionless: the
+    /// only thing a caller can do is hand over BNB, which stays in this contract as surplus and can
+    /// never be taken back out (`emergencyWithdrawBNB` only sees BNB above vaultBNB + buybackPool,
+    /// and vault withdrawals are sealed), so this cannot be used to inflate the floor without paying
+    /// for it. Unsolicited BNB sent to `receive()` still lands in surplus and is NOT counted here.
+    function addVaultBNB() external payable {
+        require(msg.value > 0, "Zero amount");
+        vaultBNB += msg.value;
+    }
+
     /* ============ Owner emergency ============ */
     function emergencyWithdrawBNB(uint256 amount) external onlyOwner {
         // "Surplus" is balance − vaultBNB − buybackPool. The buyback BNB is already spoken for
@@ -1108,6 +1155,12 @@ contract TwoProtocolUpgradeable is
         require(poolTaxScope < 2 && _scope < 4, "Bad bps");
         poolTaxScope = _scope;
         emit PoolTaxScopeSet(_scope);
+    }
+
+    /// V17: point the trade-time pinger at the burn-mine contract (`address(0)` switches it off).
+    /// No event, like the other owner setters at the EIP-170 edge — the value is readable on-chain.
+    function setTradeHook(address _hook) external onlyOwner {
+        tradeHook = _hook;
     }
 
     /* ============ V10 mint parameter governance (DAO) ============ */

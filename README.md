@@ -32,14 +32,16 @@ implementation address only changes when the module is upgraded.
 
 | Module | Proxy (permanent) | Implementation |
 | --- | --- | --- |
-| TwoProtocol (the 02 token) | `0x9e5dD55481AcCC93E4a781E65D3795E9E7B2a7c6` | `0x9628d61E665121c30ccd45A4b64B61438B72EA8E` |
-| RewardDistributor | `0xea00fB5Bab3092956E1a13f0e7748c83a9618Acc` | `0x1F0cEc193238b7663690C1694334747927048458` |
-| LPReward | `0xB3dA5a206ecA1eBdB8fb90a54A1c12bc719D5DdD` | `0x9720E64d0FdA53caFDB1e4DcA029872F245fe93E` |
-| TwoLend | `0xFF1128634d42146D68b988d40908bF97d4694925` | `0x6EC4087D8Fcc479f0cD715688957BaC90D580C97` |
-| LiquidityManager | `0x7C8cef567b86327B7fdBb3e218B1bC933682Dfe4` | `0x8fEff6C35a8e6c0513DAc670389303A3a644caEF` |
+| TwoProtocol (the 02 token) | `0x9e5dD55481AcCC93E4a781E65D3795E9E7B2a7c6` | `0x8672438e0148DB632b248737b89Cdf9c4e4a9A6E` |
+| RewardDistributor | `0xea00fB5Bab3092956E1a13f0e7748c83a9618Acc` | `0x9fa59dCd95a78aD3e942a6938B9D1188188DfACE` |
+| LPReward | `0xB3dA5a206ecA1eBdB8fb90a54A1c12bc719D5DdD` | `0x8b06e410356ED254720027B482c7980354b3942f` |
+| TwoLend | `0xFF1128634d42146D68b988d40908bF97d4694925` | `0xDF59714e4C2F49D782Cd80fe0C8B38Af26565785` |
+| LiquidityManager | `0x7C8cef567b86327B7fdBb3e218B1bC933682Dfe4` | `0x46ff795916E5b87cc40B0b2A10CdEa99dF3F3a17` |
 | TwoSwap | `0x6631f1b82Ef0Ccb2a6ff26b0C2f9650B29466Fde` | `0xC8A3D4367747750F96A012FF4eC74C148fEE65Ec` |
-| TwoFoundation | `0x1F2018117c4acA2cB2B5EFCd2355A7015bC47F22` | `0xEaFe5fA63BBF59aF4290Db6C5C6c154Bc1751470` |
+| TwoFoundation | `0x1F2018117c4acA2cB2B5EFCd2355A7015bC47F22` | `0x44D661C264c4A732fcE4865fA53f3D2c2878a36B` |
 | TwoDAO | `0x1E9D0bCB55b65808F0972A3D9fE30275DDE6c26E` | `0xBF56C61A1771F6EaD7509492F85d3c2982ddD149` |
+| TwoBurnMine | `0x4cbb8Ef421888b3D405F5548c5Db91E5Ca2231b5` | `0x3bb05F850478005Ad26CA456CFc89FE2DDC3A69E` |
+| CommunityTreasury | `0x046827274708Fa4C4cE6439c9C10b03615659b0D` | `0xb7E8A6baDe22114c6d0eAc1764B1Cfc6aeb4ec96` |
 | 02/WBNB pair (PancakeSwap V2) | `0xA5faffc96Df312456Fde83765DCb35C7B4673733` | — |
 
 ## Source verification
@@ -63,6 +65,8 @@ contracts/
 ├── TwoSwapUpgradeable.sol           # swap wrapper
 ├── TwoFoundationUpgradeable.sol     # multisig treasury / referral rewards
 ├── TwoDAOUpgradeable.sol            # staker governance
+├── TwoBurnMineUpgradeable.sol       # burn-to-mine module: referral tiers, dip queue
+├── CommunityTreasury.sol            # community treasury (02 / USDT / BNB)
 ├── TwoProtocolProxy.sol             # ERC-1967 proxies used for the modules above
 ├── TwoSwapProxy.sol
 └── UpgradeableProxy.sol

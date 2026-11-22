@@ -22,12 +22,24 @@ contract RewardDistributorUpgradeable is
     using SafeERC20 for IERC20;
 
     /* ============ Constants ============ */
-    uint256 public constant MAX_STAKE_RATIO  = 3000;   // staking cap: 30% of the circulating supply
+    /// Seed for the governable cap below. 10000 = 100% of the circulating supply, which is also the
+    /// mathematical maximum: every staked 02 is held by this contract, so totalStaked can never
+    /// exceed circulatingSupply. In other words the default is already "no practical limit".
+    uint256 public constant DEFAULT_MAX_STAKE_RATIO = 10_000;
+    /// Hard bound for `maxStakeRatioBps`. Not a policy choice — above 100% the number stops meaning
+    /// anything at all, so this just keeps it honest.
+    uint256 public constant MAX_STAKE_RATIO_CEILING = 10_000;
     uint256 public constant REWARD_INTERVAL  = 1 hours; // snapshot dividends every 1 hour
     uint256 public constant LOCK_30_DAYS     = 30 days;
     uint256 public constant LOCK_60_DAYS     = 60 days;
     uint256 public constant LOCK_90_DAYS     = 90 days;
     uint256 public constant MIN_LOCK_TIME    = 24 hours; // principal can be withdrawn early after 24h (no dividends)
+    /// After the pool goes from "no stakers" to its first staker, distributions are held for this long
+    /// so the market has a full day to join. Without it, the whole backlog that accrued while nobody
+    /// was staked (the mint-phase 3%/7% pre-funding, plus any V2 tax / interest that arrived in
+    /// between) would be swept by whoever staked first — even with a minimal stake, because the
+    /// dividend denominator is then just that one stake's weight. See _settleNow().
+    uint256 public constant BOOTSTRAP_WINDOW = 24 hours;
     uint256 private constant ONE_ETHER       = 1e18;
     // Lock-duration weighting for dividend shares (applies to ALL phases):
     // staking 02 for 90 days grants 3x the dividend share of a 30-day stake.
@@ -67,12 +79,50 @@ contract RewardDistributorUpgradeable is
     // parked here instead of reverting the unstake, and pulled with claimReward(). Appended.
     mapping(address => uint256) public unclaimedReward;
 
+    // The live staking cap, in bps of the circulating supply — the governable replacement for what
+    // used to be the compile-time constant MAX_STAKE_RATIO (=3000). Declared LAST on purpose: proxy
+    // storage is append-only, so a slot declared before the two mappings above would shift them.
+    // Seeded by initialize() on a fresh deploy and by initStakeV2() on the existing proxy; a proxy
+    // that has not run that hook reads 0 here, which fails CLOSED (nothing new can be staked) until
+    // the hook runs — never open by accident.
+    uint256 public maxStakeRatioBps;
+
+    // Deadline of the bootstrap window opened by the first stake after a stretch with no stakers
+    // (0 = no window running). Appended after maxStakeRatioBps: proxy storage stays append-only.
+    uint256 public bootstrapUntil;
+
+    // Per-user mirror of totalStaked: live, unexpired single-token stake only. The Foundation's referral
+    // gate reads this to decide whether a referrer stakes enough to earn. Appended last for the usual
+    // reason (proxy storage is append-only). Subtractions SATURATE — a proxy upgraded while people are
+    // already staked starts this mapping at 0, and a plain `-=` on the first sweep of such a stake would
+    // underflow and brick unstake/sweep for that user. Anyone can repair a user with syncActiveStaked().
+    mapping(address => uint256) public activeStaked;
+
+    // Deprecated slots, kept only to preserve the storage layout. The referral time gate was moved to
+    // LPReward (the claim gate is LP-based), so nothing reads or writes these any more.
+    mapping(address => uint256) public stakeTimeAccrued;
+    mapping(address => uint256) public stakeTimeCheckpoint;
+
+    // Freeze (appended last — proxy storage stays append-only), mirroring LPReward:
+    // only addresses on the early-user list (`freezeEligible`) can ever be frozen, so members who
+    // join after launch are safe; a frozen address cannot unstake, unstake early or claim dividends.
+    address public lpOperator;
+    bool public freezeListSealed;
+    mapping(address => bool) public freezeEligible;
+    mapping(address => bool) public lpFrozen;
+
     event Staked(address indexed user, uint256 index, uint256 amount, uint256 lockDays);
     event Unstaked(address indexed user, uint256 index, uint256 amount, uint256 reward);
     event EarlyUnstaked(address indexed user, uint256 index, uint256 amount);
     event RewardDistributed(uint256 amount);
     event ExpiredSwept(address indexed user, uint256 totalDeducted);
     event RewardParked(address indexed user, uint256 amount);
+    event MaxStakeRatioUpdated(uint256 bps);
+    event BootstrapWindowStarted(uint256 until);
+    event LpOperatorSet(address indexed operator);
+    event FreezeEligibleSet(address indexed account, bool flag);
+    event FreezeListSealed();
+    event LpFrozenSet(address indexed account, bool flag);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -87,15 +137,86 @@ contract RewardDistributorUpgradeable is
         twoToken = IERC20(_twoToken);
         twoProtocolAddress = _twoProtocol;
         lastRewardTime = block.timestamp;
+        maxStakeRatioBps = DEFAULT_MAX_STAKE_RATIO; // proxy storage starts zeroed — seed it here
     }
 
     /// Only the owner may upgrade the implementation (UUPS).
     function _authorizeUpgrade(address /*newImplementation*/) internal override onlyOwner {}
 
+    /// Upgrade hook — run once through upgradeToAndCall in the SAME transaction as the implementation
+    /// swap. It seeds the `maxStakeRatioBps` slot this implementation adds: proxy storage starts
+    /// zeroed, so a proxy upgraded without it would read a cap of 0 and reject every new stake with
+    /// "Stake cap reached". That failure is closed, never open, and recoverable on its own.
+    function initStakeV2() external onlyOwner reinitializer(2) {
+        maxStakeRatioBps = DEFAULT_MAX_STAKE_RATIO;
+    }
+
     /* ============ Owner setters ============ */
     function setTwoProtocol(address _addr) external onlyOwner { twoProtocolAddress = _addr; }
     function setTwoLend(address _addr)     external onlyOwner { twoLendAddress = _addr; }
     function setStakingEnabled(bool _flag) external onlyOwner { stakingEnabled = _flag; }
+
+    /// Owner: the staking cap, in bps of the circulating supply (see getMaxStakeAmount). Bounded by
+    /// MAX_STAKE_RATIO_CEILING, a constant, so no setter call can widen it past 100%. Lowering it only
+    /// affects NEW stakes: existing ones keep their terms and always unstake normally, because
+    /// `unstake` / `earlyUnstake` never consult the cap.
+    function setMaxStakeRatioBps(uint256 _bps) external onlyOwner {
+        require(_bps <= MAX_STAKE_RATIO_CEILING, "Above ceiling");
+        maxStakeRatioBps = _bps;
+        emit MaxStakeRatioUpdated(_bps);
+    }
+
+    /* ============ Freeze (early-user list only) ============ */
+    /// Frozen accounts cannot unstake, unstake early or claim dividends. The operator curates the
+    /// early-user list and toggles the flags; the list can be sealed once at launch.
+    modifier notFrozen() {
+        require(!lpFrozen[msg.sender], "Stake frozen");
+        _;
+    }
+
+    function setLpOperator(address _op) external onlyOwner {
+        lpOperator = _op;
+        emit LpOperatorSet(_op);
+    }
+
+    function setFreezeEligible(address account, bool flag) external {
+        require(msg.sender == lpOperator || msg.sender == owner(), "Only operator");
+        require(!freezeListSealed, "List sealed");
+        require(account != address(0), "Zero address");
+        freezeEligible[account] = flag;
+        emit FreezeEligibleSet(account, flag);
+    }
+
+    function sealFreezeList() external onlyOwner {
+        freezeListSealed = true;
+        emit FreezeListSealed();
+    }
+
+    function setLpFrozen(address account, bool flag) external {
+        require(msg.sender == lpOperator || msg.sender == owner(), "Only operator");
+        if (flag) require(freezeEligible[account], "Not in early list");
+        lpFrozen[account] = flag;
+        emit LpFrozenSet(account, flag);
+    }
+
+    /// Bulk add to the early list and freeze: the operator handles the whole list in one transaction,
+    /// with no per-address confirmation.
+    function freezeMany(address[] calldata accounts) external {
+        require(msg.sender == lpOperator || msg.sender == owner(), "Only operator");
+        for (uint256 i = 0; i < accounts.length; i++) {
+            address a = accounts[i];
+            require(a != address(0), "Zero address");
+            if (!freezeEligible[a]) {
+                require(!freezeListSealed, "List sealed");
+                freezeEligible[a] = true;
+                emit FreezeEligibleSet(a, true);
+            }
+            if (!lpFrozen[a]) {
+                lpFrozen[a] = true;
+                emit LpFrozenSet(a, true);
+            }
+        }
+    }
 
     /* ============ Read-only ============ */
     function circulatingSupply() public view returns (uint256 s) {
@@ -106,7 +227,13 @@ contract RewardDistributorUpgradeable is
     }
     function getMaxStakeAmount() public view returns (uint256) {
         uint256 s = circulatingSupply();
-        return s == 0 ? 0 : (s * MAX_STAKE_RATIO) / 10_000;
+        return s == 0 ? 0 : (s * maxStakeRatioBps) / 10_000;
+    }
+
+    /// True while the bootstrap window is holding distributions (see _settleNow). Callers that
+    /// simulate a snapshot must check this, or they would show a dividend that is not payable yet.
+    function bootstrapHolding() public view returns (bool) {
+        return bootstrapUntil != 0 && block.timestamp < bootstrapUntil;
     }
 
     /// Frontend query of a stake's accumulated dividend. `amount*weight*acc - rewardDebt` is now the exact
@@ -119,8 +246,10 @@ contract RewardDistributorUpgradeable is
         if (!info.isActive) return 0;
 
         uint256 _acc = accumulatedRewardPerShare;
-        // Simulate one snapshot (value only, no state change)
-        if (block.timestamp >= lastRewardTime + REWARD_INTERVAL && totalWeightedStaked > 0 && rewardPool > 0) {
+        // Simulate one snapshot (value only, no state change). Skipped while the bootstrap window is
+        // holding, because no settlement would actually happen then.
+        if (block.timestamp >= lastRewardTime + REWARD_INTERVAL && totalWeightedStaked > 0 && rewardPool > 0
+            && !bootstrapHolding()) {
             _acc += (rewardPool * ONE_ETHER) / totalWeightedStaked;
         }
         uint256 gross = (info.amount * info.weight * _acc) / ONE_ETHER;
@@ -132,6 +261,15 @@ contract RewardDistributorUpgradeable is
     /// weights. Split out of updateReward() so stake() can settle BEFORE the new weight is added —
     /// otherwise whoever joins just before an hourly snapshot is paid for the time they were not in.
     function _settleNow() internal {
+        // Bootstrap window: hold every distribution until it expires, so the market has a full day to
+        // join before the first settlement. Without it the backlog that accrued while nobody was staked
+        // is divided by the first staker's own weight alone and lands on them entirely. Every path that
+        // settles goes through here (updateReward, stake, unstake, earlyUnstake, unstakeAll, sweep),
+        // so gating it here is enough — a second staker joining mid-window must not settle either.
+        if (bootstrapUntil != 0) {
+            if (block.timestamp < bootstrapUntil) return; // still holding
+            bootstrapUntil = 0;                            // expired — clear it and settle below
+        }
         if (totalWeightedStaked == 0 || rewardPool == 0) return;
         uint256 rewardAmount = rewardPool;
         rewardPool = 0;
@@ -164,7 +302,7 @@ contract RewardDistributorUpgradeable is
 
     /// Pull a parked dividend (see _payOrPark). The amount is still inside claimableReserve, so
     /// ownerRescueBNB keeps treating it as owed to stakers.
-    function claimReward() external nonReentrant {
+    function claimReward() external nonReentrant notFrozen {
         uint256 amount = unclaimedReward[msg.sender];
         require(amount > 0, "Nothing to claim");
         unclaimedReward[msg.sender] = 0;
@@ -194,6 +332,7 @@ contract RewardDistributorUpgradeable is
             StakeInfo storage info = userStakes[user][i];
             if (info.isActive && !info.isExpiredDeducted && block.timestamp >= info.endTime) {
                 totalStaked -= info.amount;
+                _subActiveStaked(user, info.amount);
                 info.isExpiredDeducted = true;
                 deducted += info.amount;
             }
@@ -210,6 +349,26 @@ contract RewardDistributorUpgradeable is
         _sweepExpiredForUser(user);
     }
 
+    /// Decrement the per-user mirror without ever underflowing (see the storage note on `activeStaked`).
+    function _subActiveStaked(address user, uint256 amount) internal {
+        uint256 cur = activeStaked[user];
+        activeStaked[user] = cur > amount ? cur - amount : 0;
+    }
+
+    /// Permissionless repair of `activeStaked` for one user, rebuilt from userStakes — it can only ever
+    /// write the truth, so it cannot be used to inflate. Needed once for anyone who was already staked
+    /// when this implementation went live (their mirror reads 0 until someone calls this).
+    function syncActiveStaked(address user) external {
+        _sweepExpiredForUser(user);
+        uint256 len = userStakes[user].length;
+        uint256 sum;
+        for (uint256 i = 0; i < len; i++) {
+            StakeInfo storage info = userStakes[user][i];
+            if (info.isActive && !info.isExpiredDeducted && block.timestamp < info.endTime) sum += info.amount;
+        }
+        activeStaked[user] = sum;
+    }
+
     /* ============ Stake ============ */
     function stake(uint256 amount, uint256 lockDays) external nonReentrant {
         require(stakingEnabled, "Staking closed");
@@ -223,6 +382,15 @@ contract RewardDistributorUpgradeable is
 
         twoToken.safeTransferFrom(msg.sender, address(this), amount);
 
+        // First stake after a stretch with no stakers: open the bootstrap window. Distributed dividends
+        // are held until it expires so the backlog is shared by everyone who joins within it instead of
+        // being captured by this single stake. The check runs before the new weight is added, so it
+        // fires exactly on the 0 -> 1 transition (and again if the pool ever empties out completely).
+        if (totalWeightedStaked == 0) {
+            bootstrapUntil = block.timestamp + BOOTSTRAP_WINDOW;
+            emit BootstrapWindowStarted(bootstrapUntil);
+        }
+
         uint256 index = userStakes[msg.sender].length;
         userStakes[msg.sender].push();
         StakeInfo storage info = userStakes[msg.sender][index];
@@ -234,6 +402,7 @@ contract RewardDistributorUpgradeable is
         info.isActive  = true;
 
         totalStaked += amount;
+        activeStaked[msg.sender] += amount;
         totalWeightedStaked += amount * info.weight;
         userStakeCount[msg.sender] += 1;
 
@@ -241,7 +410,7 @@ contract RewardDistributorUpgradeable is
     }
 
     /* ============ Unstake at maturity (principal + dividends) ============ */
-    function unstake(uint256 index) external nonReentrant {
+    function unstake(uint256 index) external nonReentrant notFrozen {
         require(index < userStakes[msg.sender].length, "Out of range");
         StakeInfo storage info = userStakes[msg.sender][index];
         require(info.isActive, "Not active");
@@ -259,6 +428,7 @@ contract RewardDistributorUpgradeable is
         // Guarded: the sweep above may already have deducted this stake from totalStaked.
         if (!info.isExpiredDeducted) {
             totalStaked -= amount;
+            _subActiveStaked(msg.sender, amount);
             info.isExpiredDeducted = true;
         }
         // Unguarded, and exactly once: the sweep no longer removes the weight from the dividend
@@ -276,7 +446,7 @@ contract RewardDistributorUpgradeable is
     }
 
     /* ============ Early unstake (principal only, no dividends; pending redistributed to the rest) ============ */
-    function earlyUnstake(uint256 index) external nonReentrant {
+    function earlyUnstake(uint256 index) external nonReentrant notFrozen {
         require(index < userStakes[msg.sender].length, "Out of range");
         StakeInfo storage info = userStakes[msg.sender][index];
         require(info.isActive, "Not active");
@@ -313,6 +483,7 @@ contract RewardDistributorUpgradeable is
         // the guard is kept for the normal reason (never deduct totalStaked twice).
         if (!info.isExpiredDeducted) {
             totalStaked -= amount;
+            _subActiveStaked(msg.sender, amount);
             info.isExpiredDeducted = true;
         }
         // Unguarded, and exactly once: the denominator only drops where the stake actually leaves.
@@ -323,7 +494,7 @@ contract RewardDistributorUpgradeable is
     }
 
     /* ============ Batch unstake at maturity (multiple stakes at once) ============ */
-    function unstakeAll(uint256 count) external nonReentrant {
+    function unstakeAll(uint256 count) external nonReentrant notFrozen {
         require(count > 0, "Zero count");
         uint256 len = userStakes[msg.sender].length;
         if (count > len) count = len;
@@ -349,6 +520,7 @@ contract RewardDistributorUpgradeable is
             // Guarded: the sweep above already deducted the matured stakes from totalStaked.
             if (!info.isExpiredDeducted) {
                 totalStaked -= amount;
+                _subActiveStaked(msg.sender, amount);
                 info.isExpiredDeducted = true;
             }
             // Unguarded, and exactly once per stake: the denominator drops here.
